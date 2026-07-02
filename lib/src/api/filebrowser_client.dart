@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 
@@ -105,21 +106,38 @@ class FileBrowserClient {
     var u = url.trim();
     // Enforce TLS: an explicit http:// base is rejected (credentials and the
     // JWT travel in headers and must never go out in cleartext); a schemeless
-    // host defaults to https://.
-    if (u.startsWith('http://')) {
+    // host defaults to https://. Loopback hosts are exempt — the traffic
+    // never crosses a network — which is what dev setups and the integration
+    // tests (local quantum on :8080) use. Mirrored by the Android
+    // networkSecurityConfig, which likewise permits cleartext only to these
+    // hosts.
+    if (u.startsWith('http://') && !_isLoopback(u)) {
       throw ArgumentError(
           'Insecure http:// server URLs are not allowed — use https://.');
     }
-    if (!u.startsWith('https://')) {
+    if (!u.startsWith('http://') && !u.startsWith('https://')) {
       u = 'https://$u';
     }
     return u.endsWith('/') ? u.substring(0, u.length - 1) : u;
   }
 
-  /// Whether [url] is an acceptable server URL (https:// or schemeless, never
-  /// http://). Used by the login form to reject cleartext before setup.
-  static bool isAllowedBaseUrl(String url) =>
-      !url.trim().toLowerCase().startsWith('http://');
+  /// True when [url]'s host is local to the machine (or, for `10.0.2.2`, the
+  /// Android emulator's alias for its host), so cleartext cannot leave it.
+  static bool _isLoopback(String url) {
+    final host = Uri.tryParse(url.trim())?.host ?? '';
+    return host == 'localhost' ||
+        host == '127.0.0.1' ||
+        host == '::1' ||
+        host == '10.0.2.2';
+  }
+
+  /// Whether [url] is an acceptable server URL: https://, schemeless, or
+  /// http:// to a loopback host. Used by the login form to reject cleartext
+  /// before setup.
+  static bool isAllowedBaseUrl(String url) {
+    final u = url.trim().toLowerCase();
+    return !u.startsWith('http://') || _isLoopback(u);
+  }
 
   /// Builds `<base>/api/<segment>` (no trailing slash).
   Uri _endpoint(String segment) => Uri.parse('$_baseUrl/api/$segment');
@@ -329,6 +347,18 @@ class FileBrowserClient {
     return _scopedUri('resources/download', {'file': files, 'algo': algo});
   }
 
+  /// Fetches a file's raw bytes in one authenticated request (for small
+  /// in-app previews — the text viewer caps what it asks for by the listed
+  /// size; large transfers belong to the background downloader instead).
+  Future<Uint8List> downloadBytes(String path) async {
+    await renewIfNeeded();
+    final resp = await _dio.getUri<List<int>>(
+      rawUri(path),
+      options: _authOptions(responseType: ResponseType.bytes),
+    );
+    return Uint8List.fromList(resp.data ?? const []);
+  }
+
   /// Thumbnail/preview URL. [size] is 'small', 'large' or 'original'. Requires
   /// [authHeaders].
   Uri previewUri(String path, {String size = 'small'}) => _scopedUri(
@@ -343,6 +373,61 @@ class FileBrowserClient {
         'resources',
         {'path': path, 'override': override.toString()},
       );
+
+  /// Uploads one chunk of a chunked (resumable) upload.
+  ///
+  /// Quantum's scheme (its web frontend uses the same): `POST /api/resources`
+  /// where the presence of `X-File-Chunk-Offset` switches the server into
+  /// chunked mode. Chunks are raw bytes, sent sequentially; the server
+  /// accumulates them in a temp file next to the destination and moves it onto
+  /// the real path when `offset + chunk length` reaches `X-File-Total-Size`
+  /// (each chunk answers 200; there is no separate finish call). The offset-0
+  /// chunk performs the conflict check: 409 when the path exists and
+  /// [override] is false.
+  ///
+  /// Failure semantics (verified against v1.4.0-stable): a chunk aborted
+  /// mid-body destroys the server's temp file, so after a transport error the
+  /// upload must restart from offset 0. Only a graceful pause — [pauseUpload]
+  /// then aborting the in-flight chunk — preserves the temp file (truncated to
+  /// the last committed offset) for a same-session resume.
+  Future<void> uploadChunk(
+    String path, {
+    required int offset,
+    required int totalSize,
+    required Uint8List bytes,
+    bool override = false,
+    void Function(int sent, int total)? onSendProgress,
+    CancelToken? cancelToken,
+  }) async {
+    await renewIfNeeded();
+    await _dio.postUri(
+      uploadUri(path, override: override),
+      data: Stream<Uint8List>.fromIterable([bytes]),
+      options: Options(
+        headers: {
+          ...?_bearer(),
+          'X-File-Chunk-Offset': '$offset',
+          'X-File-Total-Size': '$totalSize',
+          Headers.contentLengthHeader: bytes.length,
+          Headers.contentTypeHeader: 'application/octet-stream',
+        },
+      ),
+      onSendProgress: onSendProgress,
+      cancelToken: cancelToken,
+    );
+  }
+
+  /// Signals a graceful pause for the chunked upload at [path]
+  /// (`POST /api/resources/pause`). The server truncates the in-flight chunk
+  /// back to the last committed offset and *preserves* the temp file, so the
+  /// upload can resume from that offset. Call this right before aborting the
+  /// in-flight chunk request.
+  Future<void> pauseUpload(String path) async {
+    await _dio.postUri(
+      _scopedUri('resources/pause', {'path': path}),
+      options: _authOptions(),
+    );
+  }
 
   /// Headers for image/video loaders (CachedNetworkImage, VideoPlayer, …) and
   /// the background downloader.

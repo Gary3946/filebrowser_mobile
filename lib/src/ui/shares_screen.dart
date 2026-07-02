@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../api/filebrowser_client.dart';
 import '../api/models.dart';
 import '../api/share_link.dart';
@@ -39,21 +40,21 @@ class _SharesScreenState extends State<SharesScreen> {
   void _reload() => setState(_load);
 
   Future<void> _delete(FbShare share) async {
+    final loc = AppLocalizations.of(context);
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete share link?'),
-        content: Text('The public link for "${share.path}" will stop working. '
-            'This cannot be undone.'),
+        title: Text(loc.sharesDeleteTitle),
+        content: Text(loc.sharesDeleteBody(share.path)),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+              child: Text(loc.actionCancel)),
           FilledButton(
             style: FilledButton.styleFrom(
                 backgroundColor: Theme.of(ctx).colorScheme.error),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
+            child: Text(loc.actionDelete),
           ),
         ],
       ),
@@ -64,14 +65,15 @@ class _SharesScreenState extends State<SharesScreen> {
       await widget.client.deleteShare(share.hash);
       _reload();
     } catch (e) {
-      showErrorSnackBar(messenger, 'Could not delete share: $e');
+      showErrorSnackBar(messenger, loc.sharesCouldNotDelete('$e'));
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Shared links')),
+      appBar: AppBar(title: Text(loc.sharesTitle)),
       body: RefreshIndicator(
         onRefresh: () async => _reload(),
         child: FutureBuilder<List<FbShare>>(
@@ -86,20 +88,21 @@ class _SharesScreenState extends State<SharesScreen> {
             }
             final shares = snap.data ?? const [];
             if (shares.isEmpty) {
+              final hint = Theme.of(context).colorScheme.onSurfaceVariant;
               return ListView(
-                children: const [
-                  SizedBox(height: 120),
-                  Icon(Icons.link_off, size: 48, color: Colors.grey),
-                  SizedBox(height: 12),
-                  Center(child: Text('No shared links yet')),
-                  SizedBox(height: 6),
+                children: [
+                  const SizedBox(height: 120),
+                  Icon(Icons.link_off, size: 48, color: hint),
+                  const SizedBox(height: 12),
+                  Center(child: Text(loc.sharesEmpty)),
+                  const SizedBox(height: 6),
                   Center(
                     child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 32),
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
                       child: Text(
-                        'Use “Share link” on a file or folder to create one.',
+                        loc.sharesEmptyHint,
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey),
+                        style: TextStyle(color: hint),
                       ),
                     ),
                   ),
@@ -135,6 +138,7 @@ class _ShareTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     final url = publicShareUrl(baseUrl, share.hash);
     final scheme = Theme.of(context).colorScheme;
     final expired = share.isExpired;
@@ -160,13 +164,14 @@ class _ShareTile extends StatelessWidget {
         ],
       ),
       trailing: PopupMenuButton<String>(
+        tooltip: loc.sharesActionsTooltip,
         onSelected: (v) {
           switch (v) {
             case 'copy':
               Clipboard.setData(ClipboardData(text: url));
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content: Text('Link copied'),
-                  duration: Duration(seconds: 2)));
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(loc.shareLinkCopied),
+                  duration: const Duration(seconds: 2)));
             case 'share':
               Share.share(url);
             case 'open':
@@ -175,23 +180,27 @@ class _ShareTile extends StatelessWidget {
               onDelete();
           }
         },
-        itemBuilder: (_) => const [
+        itemBuilder: (_) => [
           PopupMenuItem(
               value: 'copy',
               child: ListTile(
-                  leading: Icon(Icons.copy), title: Text('Copy link'))),
+                  leading: const Icon(Icons.copy),
+                  title: Text(loc.sharesCopyLink))),
           PopupMenuItem(
               value: 'share',
               child: ListTile(
-                  leading: Icon(Icons.share_outlined), title: Text('Share'))),
+                  leading: const Icon(Icons.share_outlined),
+                  title: Text(loc.actionShare))),
           PopupMenuItem(
               value: 'open',
               child: ListTile(
-                  leading: Icon(Icons.info_outline), title: Text('Details'))),
+                  leading: const Icon(Icons.info_outline),
+                  title: Text(loc.actionDetails))),
           PopupMenuItem(
               value: 'delete',
               child: ListTile(
-                  leading: Icon(Icons.delete_outline), title: Text('Delete'))),
+                  leading: const Icon(Icons.delete_outline),
+                  title: Text(loc.actionDelete))),
         ],
       ),
       onTap: () =>

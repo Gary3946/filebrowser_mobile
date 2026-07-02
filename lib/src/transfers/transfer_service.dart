@@ -5,6 +5,8 @@ import 'package:background_downloader/background_downloader.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import '../api/filebrowser_client.dart';
+import 'chunked_upload_task.dart';
 import 'transfer_record.dart';
 
 /// Maps a user-chosen public directory path (from the SAF directory picker) to
@@ -25,20 +27,30 @@ String sharedDownloadsSubdir(String absoluteDir) {
   return segs.isNotEmpty ? segs.last : '';
 }
 
-/// Wraps `background_downloader` so uploads/downloads run in a native
-/// foreground service and continue when the app is backgrounded or closed.
+/// Runs the app's transfers over two engines and folds both into one live
+/// list of [TransferRecord]s (via [records]) for the transfers screen and the
+/// app-bar badge:
+///
+///  - `background_downloader` tasks — downloads, and uploads at or below
+///    [defaultUploadChunkSize]. These run in a native foreground service and
+///    survive the app being backgrounded or closed, but an upload is a single
+///    POST of the raw bytes and restarts from scratch when interrupted.
+///  - [ChunkedUploadTask]s — uploads above [defaultUploadChunkSize], sent as
+///    sequential offset chunks (quantum's resumable scheme). These can pause/
+///    resume mid-file and retry transient failures by themselves, but run in
+///    the app process, so they need the app alive.
+///
+/// [upload] picks the engine by file size; the actions ([pause], [resume],
+/// [cancel], [retry]) dispatch on the record's concrete type.
 ///
 /// Server specifics:
-///  - Download: GET `/api/resources/download?source=…&file=…` with the
-///              `Authorization: Bearer` header.
-///  - Upload:   POST `/api/resources?path=…&source=…&override=…` with the raw
-///              file bytes as the body — i.e. a *binary* upload (not multipart).
-///
-/// Beyond enqueueing, the service folds the package's [TaskUpdate] stream into a
-/// small in-memory map of [TransferRecord]s (keyed by taskId) and re-broadcasts
-/// it via [records], so the transfers screen and the app-bar badge can render
-/// live state without each re-subscribing to the raw update stream. The
-/// enqueue API ([download]/[upload]) is unchanged.
+///  - Download:       GET `/api/resources/download?source=…&file=…` with the
+///                    `Authorization: Bearer` header.
+///  - Upload:         POST `/api/resources?path=…&source=…&override=…` with
+///                    the raw file bytes as the body (binary, not multipart).
+///  - Chunked upload: the same POST with `X-File-Chunk-Offset` /
+///                    `X-File-Total-Size` headers per chunk — see
+///                    [FileBrowserClient.uploadChunk].
 class TransferService {
   static const _group = 'filebrowser';
   // A separate, untracked group for the short-lived open-with cache fetch, so
@@ -53,6 +65,13 @@ class TransferService {
   final StreamController<List<TransferRecord>> _recordsController =
       StreamController<List<TransferRecord>>.broadcast();
   StreamSubscription<TaskUpdate>? _updatesSub;
+
+  // Live chunked-upload engines by record id, with the subscription that folds
+  // each one's snapshots into [_records]. Entries leave the maps when the
+  // record leaves the list (clearFinished/purgeAll).
+  final Map<String, ChunkedUploadTask> _chunkedTasks = {};
+  final Map<String, StreamSubscription<ChunkedUploadRecord>> _chunkedSubs = {};
+  int _chunkedSeq = 0;
 
   // taskId -> shared-Downloads sub-directory for downloads bound for a chosen
   // public folder. The file is fetched into app storage and relocated there on
@@ -80,7 +99,9 @@ class TransferService {
 
   void _ingest(TaskUpdate update) {
     final id = update.task.taskId;
-    _records[id] = applyTaskUpdate(_records[id], update);
+    final prev = _records[id];
+    _records[id] =
+        applyTaskUpdate(prev is TaskTransferRecord ? prev : null, update);
     _emit();
     // A chosen-folder download finished in app storage: relocate it into the
     // shared Downloads collection (MediaStore), which needs no storage
@@ -194,18 +215,34 @@ class TransferService {
     return task.filePath();
   }
 
-  /// Enqueue a background binary upload of [localFilePath] to [uploadUrl].
+  /// Enqueue an upload of [localFilePath] to [remotePath] on [client]'s
+  /// current source, picking the engine by size: files above the chunk size
+  /// go through the resumable [ChunkedUploadTask]; smaller ones as a single
+  /// background binary POST (which also keeps running when the app is closed).
+  /// [token] authenticates the single-POST path; the chunked path rides
+  /// [client]'s own token handling.
   Future<String> upload({
-    required Uri uploadUrl,
-    required String token,
+    required FileBrowserClient client,
+    required String remotePath,
     required String localFilePath,
+    required String token,
+    bool override = false,
   }) async {
+    final size = await File(localFilePath).length();
+    if (size > defaultUploadChunkSize) {
+      return _uploadChunked(
+        client: client,
+        remotePath: remotePath,
+        localFilePath: localFilePath,
+        override: override,
+      );
+    }
     // UploadTask locates the source file via baseDirectory + directory +
     // filename, so split the absolute path the file picker gave us.
     final (baseDirectory, directory, filename) =
         await Task.split(filePath: localFilePath);
     final task = UploadTask(
-      url: uploadUrl.toString(),
+      url: client.uploadUri(remotePath, override: override).toString(),
       filename: filename,
       directory: directory,
       baseDirectory: baseDirectory,
@@ -220,42 +257,109 @@ class TransferService {
     return task.taskId;
   }
 
-  /// Pause a running, pausable download. POST uploads cannot pause in
-  /// `background_downloader` (it requires GET), so this is a no-op (returns
-  /// false) for uploads — the UI hides the control via [TransferRecord.canPause].
-  Future<bool> pause(TransferRecord record) async {
-    final task = record.task;
-    if (task is! DownloadTask) return false;
-    return FileDownloader().pause(task);
+  String _uploadChunked({
+    required FileBrowserClient client,
+    required String remotePath,
+    required String localFilePath,
+    required bool override,
+  }) {
+    final id = 'chunked-${_chunkedSeq++}-${DateTime.now().microsecondsSinceEpoch}';
+    final task = ChunkedUploadTask(
+      client: client,
+      remotePath: remotePath,
+      localFilePath: localFilePath,
+      id: id,
+      override: override,
+    );
+    _chunkedTasks[id] = task;
+    _chunkedSubs[id] = task.updates.listen((record) {
+      _records[record.id] = record;
+      _emit();
+    });
+    _records[id] = task.snapshot;
+    _emit();
+    unawaited(task.start());
+    return id;
   }
 
-  /// Resume a paused download (see [pause]).
+  /// Pause a running transfer: a pausable download in `background_downloader`,
+  /// or a chunked upload (graceful, resumable pause). Single-POST uploads
+  /// cannot pause — the UI hides the control via [TransferRecord.canPause].
+  Future<bool> pause(TransferRecord record) async {
+    switch (record) {
+      case TaskTransferRecord(:final task):
+        if (task is! DownloadTask) return false;
+        return FileDownloader().pause(task);
+      case ChunkedUploadRecord():
+        final task = _chunkedTasks[record.id];
+        if (task == null) return false;
+        await task.pause();
+        return true;
+    }
+  }
+
+  /// Resume a paused transfer (see [pause]).
   Future<bool> resume(TransferRecord record) async {
-    final task = record.task;
-    if (task is! DownloadTask) return false;
-    return FileDownloader().resume(task);
+    switch (record) {
+      case TaskTransferRecord(:final task):
+        if (task is! DownloadTask) return false;
+        return FileDownloader().resume(task);
+      case ChunkedUploadRecord():
+        final task = _chunkedTasks[record.id];
+        if (task == null) return false;
+        unawaited(task.resume());
+        return true;
+    }
   }
 
   /// Cancel a transfer (any state); the record settles to `canceled`.
-  Future<bool> cancel(TransferRecord record) =>
-      FileDownloader().cancelTaskWithId(record.id);
+  Future<bool> cancel(TransferRecord record) async {
+    switch (record) {
+      case TaskTransferRecord():
+        return FileDownloader().cancelTaskWithId(record.id);
+      case ChunkedUploadRecord():
+        final task = _chunkedTasks[record.id];
+        if (task == null) return false;
+        task.cancel();
+        return true;
+    }
+  }
 
-  /// Re-enqueue a failed/canceled transfer, refreshing its auth header with
-  /// [token] so a long-idle task carries a current session. The original task
-  /// object is reused (its header map is mutable), so its progress notification
-  /// and identity are preserved.
+  /// Restart a failed/canceled transfer. A background task is re-enqueued
+  /// with its auth header refreshed from [token] (the original task object is
+  /// reused — mutable header map — so its notification and identity are
+  /// preserved); a chunked upload restarts from offset 0 and authenticates
+  /// through its client, so [token] is not needed there.
   Future<String> retry(TransferRecord record, {required String token}) async {
-    final task = record.task;
-    task.headers['Authorization'] = 'Bearer $token';
-    await FileDownloader().enqueue(task);
-    return task.taskId;
+    switch (record) {
+      case TaskTransferRecord(:final task):
+        task.headers['Authorization'] = 'Bearer $token';
+        await FileDownloader().enqueue(task);
+        return task.taskId;
+      case ChunkedUploadRecord():
+        final task = _chunkedTasks[record.id];
+        if (task != null) unawaited(task.start());
+        return record.id;
+    }
   }
 
   /// Drop finished (complete/failed/canceled) records from the in-memory list,
   /// e.g. when the user clears the transfers screen. Active transfers are kept.
+  /// Finished chunked engines are disposed with their records (a cleared
+  /// record can no longer be retried, so the engine has no further use).
   void clearFinished() {
     _records.removeWhere((_, r) => !r.isActive);
+    _pruneChunked((id) => !_records.containsKey(id));
     _emit();
+  }
+
+  /// Dispose and forget chunked engines whose id matches [gone].
+  void _pruneChunked(bool Function(String id) gone) {
+    final ids = _chunkedTasks.keys.where(gone).toList();
+    for (final id in ids) {
+      _chunkedSubs.remove(id)?.cancel();
+      _chunkedTasks.remove(id)?.dispose();
+    }
   }
 
   /// Wipe all transfer state — for "sign out & forget". Cancels every active
@@ -264,6 +368,10 @@ class TransferService {
   /// view, and purges the open-with cache. After this no token or downloaded
   /// byte from the old session remains on disk.
   Future<void> purgeAll() async {
+    for (final task in _chunkedTasks.values) {
+      task.cancel();
+    }
+    _pruneChunked((_) => true);
     for (final group in const [_group, _openGroup]) {
       await FileDownloader().reset(group: group);
     }
@@ -289,6 +397,7 @@ class TransferService {
 
   void dispose() {
     _updatesSub?.cancel();
+    _pruneChunked((_) => true);
     _recordsController.close();
   }
 }

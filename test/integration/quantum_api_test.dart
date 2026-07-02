@@ -116,6 +116,56 @@ void main() {
     expect(utf8.decode(got), 'quantum round trip $stamp');
   });
 
+  test('chunked upload assembles sequential chunks into the file', () async {
+    // Three uneven chunks; the server finalizes on the last one (see
+    // FileBrowserClient.uploadChunk).
+    final content = List<int>.generate(2500, (i) => i % 251);
+    final file = p('chunked.bin');
+    const chunkSize = 1000;
+    for (var offset = 0; offset < content.length; offset += chunkSize) {
+      final end = (offset + chunkSize).clamp(0, content.length);
+      await client.uploadChunk(
+        file,
+        offset: offset,
+        totalSize: content.length,
+        bytes: Uint8List.fromList(content.sublist(offset, end)),
+      );
+    }
+    final got = await download(client.rawDownloadUri(file));
+    expect(got, content);
+  });
+
+  test('chunked upload conflict: offset-0 chunk 409s without override',
+      () async {
+    final file = p('chunked_conflict.bin');
+    await upload(file, utf8.encode('existing'));
+    await expectLater(
+      () => client.uploadChunk(file,
+          offset: 0, totalSize: 4, bytes: Uint8List.fromList([1, 2, 3, 4])),
+      throwsA(isA<DioException>()
+          .having((e) => e.response?.statusCode, 'status', 409)),
+    );
+  });
+
+  test('pauseUpload preserves the partial upload for a same-offset resume',
+      () async {
+    final file = p('chunked_paused.bin');
+    final content = List<int>.generate(2000, (i) => (i * 7) % 256);
+    // First chunk, then a graceful pause, then resume from the committed
+    // offset — the server must still assemble the full file correctly.
+    await client.uploadChunk(file,
+        offset: 0,
+        totalSize: content.length,
+        bytes: Uint8List.fromList(content.sublist(0, 1000)));
+    await client.pauseUpload(file);
+    await client.uploadChunk(file,
+        offset: 1000,
+        totalSize: content.length,
+        bytes: Uint8List.fromList(content.sublist(1000)));
+    final got = await download(client.rawDownloadUri(file));
+    expect(got, content);
+  });
+
   test('upload without override returns 409 on conflict', () async {
     final file = p('conflict.txt');
     await upload(file, utf8.encode('first'));

@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:filebrowser_mobile/src/ui/video_player_screen.dart';
 
+import 'support/l10n.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -22,8 +24,8 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: VideoPlayerScreen(
+      l10nWrap(
+        VideoPlayerScreen(
           url: Uri.parse('https://example.com/movie.mp4'),
           headers: const {'Authorization': 'Bearer token'},
           title: 'movie.mp4',

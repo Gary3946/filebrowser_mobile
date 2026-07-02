@@ -97,20 +97,25 @@ typedef ConflictResolver = Future<ConflictChoice?> Function(
 /// thrown) so one bad item doesn't abort the others; returning `null` from
 /// [onConflict] aborts the remainder. The orchestration is kept here, free of
 /// widgets, so it is unit-testable against a mock-adapter client.
+///
+/// [moveIntoSelfError] is the user-facing message recorded when a folder move
+/// targets itself or a descendant; UI callers pass the localized string
+/// (`AppLocalizations.batchMoveIntoSelfError`). The English default keeps the
+/// function usable without a BuildContext (unit tests).
 Future<BatchResult> runTransferBatch({
   required FileBrowserClient client,
   required TransferOp op,
   required List<FbResource> items,
   required String destDir,
   required ConflictResolver onConflict,
+  String moveIntoSelfError = "Can't move a folder into itself or a subfolder",
 }) async {
   final results = <BatchItemResult>[];
   for (final item in items) {
     if (op == TransferOp.move &&
         item.isDir &&
         isMoveIntoSelfOrDescendant(item.path, destDir)) {
-      results.add(BatchItemResult(item,
-          error: "Can't move a folder into itself or a subfolder"));
+      results.add(BatchItemResult(item, error: moveIntoSelfError));
       continue;
     }
 

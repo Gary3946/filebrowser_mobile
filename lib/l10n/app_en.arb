@@ -1,0 +1,521 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "File Browser",
+  "@appTitle": { "description": "Application title (task switcher / window title)" },
+
+  "actionCancel": "Cancel",
+  "@actionCancel": { "description": "Generic dialog dismiss / abort button" },
+  "actionDelete": "Delete",
+  "@actionDelete": { "description": "Generic delete action (buttons, menus, tooltips)" },
+  "actionCopy": "Copy",
+  "@actionCopy": { "description": "Generic copy-to-clipboard action" },
+  "actionRetry": "Retry",
+  "@actionRetry": { "description": "Generic retry action after a failure" },
+  "actionRename": "Rename",
+  "@actionRename": { "description": "Generic rename action (sheet item, dialog title, confirm button)" },
+  "actionDownload": "Download",
+  "@actionDownload": { "description": "Generic download action" },
+  "actionCreate": "Create",
+  "@actionCreate": { "description": "Generic create action (FAB tooltip, new-folder confirm)" },
+  "actionShare": "Share",
+  "@actionShare": { "description": "Generic share action (system share-sheet)" },
+  "actionMove": "Move",
+  "@actionMove": { "description": "Move action in the selection bar" },
+  "actionDone": "Done",
+  "@actionDone": { "description": "Generic dialog close button" },
+  "actionDetails": "Details",
+  "@actionDetails": { "description": "Opens the file details sheet" },
+  "actionOpenWith": "Open with…",
+  "@actionOpenWith": { "description": "Hand a file off to a native app" },
+  "actionPause": "Pause",
+  "@actionPause": { "description": "Pause a transfer" },
+  "actionResume": "Resume",
+  "@actionResume": { "description": "Resume a paused transfer" },
+  "actionLock": "Lock",
+  "@actionLock": { "description": "Lock the app (sign out, keep credentials)" },
+  "actionSignOutForget": "Sign out & forget",
+  "@actionSignOutForget": { "description": "Sign out and erase stored credentials" },
+  "actionSkip": "Skip",
+  "@actionSkip": { "description": "Skip this item in a conflict prompt" },
+  "actionKeepBoth": "Keep both",
+  "@actionKeepBoth": { "description": "Keep both files in a conflict prompt (auto-renames)" },
+  "actionOverwrite": "Overwrite",
+  "@actionOverwrite": { "description": "Overwrite the existing item in a conflict prompt" },
+
+  "loginTitle": "Connect to File Browser",
+  "@loginTitle": { "description": "Login screen app bar title" },
+  "loginServerUrlLabel": "Server URL",
+  "@loginServerUrlLabel": { "description": "Label of the server URL field" },
+  "loginServerUrlHint": "https://files.example.com",
+  "@loginServerUrlHint": { "description": "Hint (example value) for the server URL field" },
+  "loginUsernameLabel": "Username",
+  "@loginUsernameLabel": { "description": "Label of the username field" },
+  "loginPasswordLabel": "Password",
+  "@loginPasswordLabel": { "description": "Label of the password field" },
+  "loginValidationRequired": "Required",
+  "@loginValidationRequired": { "description": "Validator message for an empty required field" },
+  "loginValidationHttpsOnly": "Use https:// — insecure http:// is not allowed",
+  "@loginValidationHttpsOnly": { "description": "Validator message when the server URL is not https" },
+  "loginContinue": "Continue",
+  "@loginContinue": { "description": "Login submit button" },
+  "loginShowPassword": "Show password",
+  "@loginShowPassword": { "description": "Tooltip to reveal the password" },
+  "loginHidePassword": "Hide password",
+  "@loginHidePassword": { "description": "Tooltip to obscure the password" },
+  "lockTitle": "File Browser is locked",
+  "@lockTitle": { "description": "Lock screen headline" },
+  "lockUnlock": "Unlock",
+  "@lockUnlock": { "description": "Biometric unlock button" },
+  "lockUseDifferentServer": "Use a different server",
+  "@lockUseDifferentServer": { "description": "Lock screen action to forget and set up another server" },
+  "sourceSelectTitle": "Choose a source",
+  "@sourceSelectTitle": { "description": "Source selection screen app bar title" },
+  "lockWithUser": "Lock ({username})",
+  "@lockWithUser": {
+    "description": "Lock action labelled with the signed-in username",
+    "placeholders": { "username": { "type": "String" } }
+  },
+
+  "breadcrumbsRoot": "Files",
+  "@breadcrumbsRoot": { "description": "Label of the root breadcrumb (the source root)" },
+
+  "browserUpTooltip": "Up",
+  "@browserUpTooltip": { "description": "Tooltip: navigate to the parent directory" },
+  "browserSearchTooltip": "Search",
+  "@browserSearchTooltip": { "description": "Tooltip: open search" },
+  "browserSortTooltip": "Sort",
+  "@browserSortTooltip": { "description": "Tooltip: open the sort menu" },
+  "browserRefreshTooltip": "Refresh",
+  "@browserRefreshTooltip": { "description": "Tooltip: reload the directory listing" },
+  "browserMoreOptionsTooltip": "More options",
+  "@browserMoreOptionsTooltip": { "description": "Tooltip: overflow menu" },
+  "sortName": "Name",
+  "@sortName": { "description": "Sort menu: by name" },
+  "sortSize": "Size",
+  "@sortSize": { "description": "Sort menu: by size" },
+  "sortDateModified": "Date modified",
+  "@sortDateModified": { "description": "Sort menu: by modification date" },
+  "browserMenuDownloadFolder": "Download folder",
+  "@browserMenuDownloadFolder": { "description": "Overflow menu: choose the default download folder" },
+  "browserEmptyFolder": "This folder is empty",
+  "@browserEmptyFolder": { "description": "Empty state of the directory grid" },
+  "browserSelectedCount": "{count} selected",
+  "@browserSelectedCount": {
+    "description": "Selection app bar title: number of selected items",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "browserExitSelectionTooltip": "Exit selection",
+  "@browserExitSelectionTooltip": { "description": "Tooltip: leave multiselect mode" },
+  "browserSelectAll": "Select all",
+  "@browserSelectAll": { "description": "Tooltip: select every visible item" },
+  "browserDeselectAll": "Deselect all",
+  "@browserDeselectAll": { "description": "Tooltip: clear the selection" },
+  "browserDownloadAsZip": "Download as zip",
+  "@browserDownloadAsZip": { "description": "Action sheet: download a folder as a zip archive" },
+  "browserShareLink": "Share link",
+  "@browserShareLink": { "description": "Create/show a public share link (sheet item and dialog title)" },
+  "browserSaveDownloadTo": "Save download to",
+  "@browserSaveDownloadTo": { "description": "Title of the save-location dialog" },
+  "browserAppStorageDefault": "App storage (default)",
+  "@browserAppStorageDefault": { "description": "Shown when no custom download folder is set" },
+  "browserChangeFolder": "Change folder…",
+  "@browserChangeFolder": { "description": "Button that opens the directory picker" },
+  "browserDownloadsSaveTo": "Downloads will save to {path}",
+  "@browserDownloadsSaveTo": {
+    "description": "Snackbar after picking a default download folder",
+    "placeholders": { "path": { "type": "String" } }
+  },
+  "browserDownloadingItem": "Downloading {name}…",
+  "@browserDownloadingItem": {
+    "description": "Snackbar when a download is enqueued",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "browserOpeningItem": "Opening {name}…",
+  "@browserOpeningItem": {
+    "description": "Snackbar while fetching a file for open-with",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "browserNoAppToOpen": "No app installed can open {name}.",
+  "@browserNoAppToOpen": {
+    "description": "Error: no native app handles the file type",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "browserCouldNotOpen": "Could not open {name}: {error}",
+  "@browserCouldNotOpen": {
+    "description": "Error opening a file",
+    "placeholders": { "name": { "type": "String" }, "error": { "type": "String" } }
+  },
+  "browserNewNameLabel": "New name",
+  "@browserNewNameLabel": { "description": "Label of the rename text field" },
+  "browserRenameFailed": "Rename failed: {error}",
+  "@browserRenameFailed": {
+    "description": "Error snackbar when a rename fails",
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "browserDeleteItemTitle": "Delete {name}?",
+  "@browserDeleteItemTitle": {
+    "description": "Delete confirmation dialog title for one item",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "browserDeleteFolderWarning": "This deletes the folder and everything in it.",
+  "@browserDeleteFolderWarning": { "description": "Delete confirmation body for a folder" },
+  "browserDeleteFileWarning": "This cannot be undone.",
+  "@browserDeleteFileWarning": { "description": "Delete confirmation body for a file" },
+  "browserDeleteFailed": "Delete failed: {error}",
+  "@browserDeleteFailed": {
+    "description": "Error snackbar when a delete fails",
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "browserDeleteCountTitle": "Delete {count} item(s)?",
+  "@browserDeleteCountTitle": {
+    "description": "Delete confirmation dialog title for a selection",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "browserDeleteSelectedWarning": "Selected files and folders (with their contents) will be permanently deleted. This cannot be undone.",
+  "@browserDeleteSelectedWarning": { "description": "Delete confirmation body for a selection" },
+  "browserDeleteFailedFor": "Delete failed for {count} item(s):\n{failures}",
+  "@browserDeleteFailedFor": {
+    "description": "Error snackbar listing per-item delete failures",
+    "placeholders": { "count": { "type": "int" }, "failures": { "type": "String" } }
+  },
+  "browserDownloadingCountZip": "Downloading {count} item(s) as zip…",
+  "@browserDownloadingCountZip": {
+    "description": "Snackbar when a multi-item zip download is enqueued",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "browserMoveTo": "Move to",
+  "@browserMoveTo": { "description": "Destination picker title for a move" },
+  "browserCopyTo": "Copy to",
+  "@browserCopyTo": { "description": "Destination picker title for a copy" },
+  "browserMoveHere": "Move here",
+  "@browserMoveHere": { "description": "Destination picker confirm for a move" },
+  "browserCopyHere": "Copy here",
+  "@browserCopyHere": { "description": "Destination picker confirm for a copy" },
+  "browserVerbMoved": "Moved",
+  "@browserVerbMoved": { "description": "Past-tense verb used in move batch summaries" },
+  "browserVerbCopied": "Copied",
+  "@browserVerbCopied": { "description": "Past-tense verb used in copy batch summaries" },
+  "browserBatchFailedSummary": "{verb} {succeeded}, skipped {skipped}; {failedCount} failed:\n{failures}",
+  "@browserBatchFailedSummary": {
+    "description": "Batch move/copy summary when some items failed",
+    "placeholders": {
+      "verb": { "type": "String" },
+      "succeeded": { "type": "int" },
+      "skipped": { "type": "int" },
+      "failedCount": { "type": "int" },
+      "failures": { "type": "String" }
+    }
+  },
+  "browserBatchCancelledSummary": "Cancelled; {verb} {succeeded}, skipped {skipped}",
+  "@browserBatchCancelledSummary": {
+    "description": "Batch move/copy summary when the user aborted mid-batch",
+    "placeholders": {
+      "verb": { "type": "String" },
+      "succeeded": { "type": "int" },
+      "skipped": { "type": "int" }
+    }
+  },
+  "browserBatchDoneSummary": "{verb} {succeeded} item(s){skippedSuffix}",
+  "@browserBatchDoneSummary": {
+    "description": "Batch move/copy success summary; skippedSuffix is empty or browserSkippedSuffix",
+    "placeholders": {
+      "verb": { "type": "String" },
+      "succeeded": { "type": "int" },
+      "skippedSuffix": { "type": "String" }
+    }
+  },
+  "browserSkippedSuffix": ", skipped {count}",
+  "@browserSkippedSuffix": {
+    "description": "Suffix appended to the batch success summary when items were skipped",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "conflictTitle": "Already exists",
+  "@conflictTitle": { "description": "Name-conflict dialog title" },
+  "conflictBody": "\"{name}\" already exists in the destination.",
+  "@conflictBody": {
+    "description": "Name-conflict dialog body",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "conflictApplyToAll": "Apply to all remaining",
+  "@conflictApplyToAll": { "description": "Checkbox to reuse the conflict choice for the rest of the batch" },
+  "errorSessionExpiredDownload": "Cannot download: session expired. Sign in again.",
+  "@errorSessionExpiredDownload": { "description": "Error when a download cannot start because the session is gone" },
+  "errorSessionExpiredOpen": "Cannot open: session expired. Sign in again.",
+  "@errorSessionExpiredOpen": { "description": "Error when open-with cannot start because the session is gone" },
+  "errorSessionExpiredUpload": "Cannot upload: session expired. Sign in again.",
+  "@errorSessionExpiredUpload": { "description": "Error when an upload cannot start because the session is gone" },
+  "errorSessionExpiredRetry": "Cannot retry: session expired. Sign in again.",
+  "@errorSessionExpiredRetry": { "description": "Error when a transfer retry cannot start because the session is gone" },
+  "browserFolderUploadFailed": "Folder upload failed: {error}",
+  "@browserFolderUploadFailed": {
+    "description": "Error snackbar when a folder upload fails",
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "browserNoFilesFoundIn": "No files found in \"{name}\"",
+  "@browserNoFilesFoundIn": {
+    "description": "Snackbar when a picked folder contains no files",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "browserUploadingCountFrom": "Uploading {count} file(s) from \"{name}\"…",
+  "@browserUploadingCountFrom": {
+    "description": "Snackbar when a folder upload is enqueued",
+    "placeholders": { "count": { "type": "int" }, "name": { "type": "String" } }
+  },
+  "browserUploadingCount": "Uploading {count} file(s)…",
+  "@browserUploadingCount": {
+    "description": "Snackbar when file uploads are enqueued",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "browserSkippedCount": "skipped {count}",
+  "@browserSkippedCount": {
+    "description": "Snackbar fragment: number of uploads skipped due to conflicts",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "browserNothingToUpload": "Nothing to upload",
+  "@browserNothingToUpload": { "description": "Snackbar when every upload was skipped/cancelled" },
+  "browserOnlyFilesUpload": "Only files can be uploaded",
+  "@browserOnlyFilesUpload": { "description": "Snackbar when an inbound share contains no file-backed items" },
+  "browserUploadCountTo": "Upload {count} file(s) to",
+  "@browserUploadCountTo": {
+    "description": "Destination picker title for an inbound share upload",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "browserUploadHere": "Upload here",
+  "@browserUploadHere": { "description": "Destination picker confirm for an inbound share upload" },
+  "browserNewFolder": "New folder",
+  "@browserNewFolder": { "description": "Create-folder action (menu item, dialog title, picker button)" },
+  "browserFolderNameLabel": "Folder name",
+  "@browserFolderNameLabel": { "description": "Label of the new-folder name field" },
+  "browserCouldNotCreateFolder": "Could not create folder: {error}",
+  "@browserCouldNotCreateFolder": {
+    "description": "Error snackbar when creating a folder fails",
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "browserUploadFiles": "Upload files",
+  "@browserUploadFiles": { "description": "Create menu: upload files" },
+  "browserUploadFilesSubtitle": "Select one or more files",
+  "@browserUploadFilesSubtitle": { "description": "Create menu: upload files subtitle" },
+  "browserUploadFolder": "Upload folder",
+  "@browserUploadFolder": { "description": "Create menu: upload a folder" },
+  "browserUploadFolderSubtitle": "Uploads the folder and its contents",
+  "@browserUploadFolderSubtitle": { "description": "Create menu: upload folder subtitle" },
+  "batchMoveIntoSelfError": "Can't move a folder into itself or a subfolder",
+  "@batchMoveIntoSelfError": { "description": "Per-item batch error: illegal move destination" },
+
+  "destinationChooseFolder": "Choose folder",
+  "@destinationChooseFolder": { "description": "Default destination picker title" },
+  "destinationNoSubfolders": "No subfolders here",
+  "@destinationNoSubfolders": { "description": "Destination picker empty state (no files either)" },
+  "destinationNoSubfoldersHidden": "No subfolders ({count} file(s) hidden)",
+  "@destinationNoSubfoldersHidden": {
+    "description": "Destination picker empty state when only files exist",
+    "placeholders": { "count": { "type": "int" } }
+  },
+
+  "errorCopied": "Error copied",
+  "@errorCopied": { "description": "Confirmation snackbar after copying an error message" },
+  "errorCopyAction": "COPY",
+  "@errorCopyAction": { "description": "Snackbar action that copies the error text (uppercase)" },
+
+  "fileDetailsUnknown": "Unknown",
+  "@fileDetailsUnknown": { "description": "Shown when the modified timestamp is absent" },
+  "fileDetailsCopied": "Copied",
+  "@fileDetailsCopied": { "description": "Confirmation snackbar after copying a detail value" },
+  "fileDetailsPath": "Path",
+  "@fileDetailsPath": { "description": "Detail row label: server path" },
+  "fileDetailsSize": "Size",
+  "@fileDetailsSize": { "description": "Detail row label: file size" },
+  "fileDetailsModified": "Modified",
+  "@fileDetailsModified": { "description": "Detail row label: modification time" },
+  "fileDetailsType": "Type",
+  "@fileDetailsType": { "description": "Detail row label: file type" },
+  "fileDetailsSha256": "sha256",
+  "@fileDetailsSha256": { "description": "Detail row label: sha256 checksum" },
+  "fileDetailsChecksumEmpty": "(empty)",
+  "@fileDetailsChecksumEmpty": { "description": "Shown when the server returns an empty checksum" },
+  "fileDetailsComputing": "Computing…",
+  "@fileDetailsComputing": { "description": "Checksum button label while computing" },
+  "fileDetailsComputeChecksum": "Compute checksum (sha256)",
+  "@fileDetailsComputeChecksum": { "description": "Button that requests the sha256 checksum" },
+  "fileDetailsChecksumFailed": "Checksum failed: {error}",
+  "@fileDetailsChecksumFailed": {
+    "description": "Error shown when the checksum request fails",
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "galleryTitle": "{position} / {total}  ·  {name}",
+  "@galleryTitle": {
+    "description": "Image viewer title: 1-based position, total count, file name",
+    "placeholders": {
+      "position": { "type": "int" },
+      "total": { "type": "int" },
+      "name": { "type": "String" }
+    }
+  },
+
+  "searchHint": "Search in {name}…",
+  "@searchHint": {
+    "description": "Search field hint scoped to the current folder",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "searchClearTooltip": "Clear",
+  "@searchClearTooltip": { "description": "Tooltip: clear the search query" },
+  "searchTypeToSearch": "Type to search this folder",
+  "@searchTypeToSearch": { "description": "Search empty-query hint" },
+  "searchKeepTyping": "Keep typing (at least {min} characters)",
+  "@searchKeepTyping": {
+    "description": "Hint when the query is below the server minimum length",
+    "placeholders": { "min": { "type": "int" } }
+  },
+  "searchNoResults": "No results for \"{query}\"",
+  "@searchNoResults": {
+    "description": "Search no-results state",
+    "placeholders": { "query": { "type": "String" } }
+  },
+
+  "shareCouldNotCreate": "Could not create share: {error}",
+  "@shareCouldNotCreate": {
+    "description": "Error snackbar when creating a share link fails",
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "sharePasswordProtected": "Password protected",
+  "@sharePasswordProtected": { "description": "Share result: link requires a password" },
+  "shareNoPassword": "No password",
+  "@shareNoPassword": { "description": "Share result: link has no password" },
+  "shareLinkCopied": "Link copied",
+  "@shareLinkCopied": { "description": "Confirmation snackbar after copying a share URL" },
+  "shareDialogPasswordLabel": "Password (optional)",
+  "@shareDialogPasswordLabel": { "description": "Label of the optional share password field" },
+  "shareDialogExpiresLabel": "Expires",
+  "@shareDialogExpiresLabel": { "description": "Label of the expiry amount field" },
+  "shareDialogExpiryLabel": "Expiry",
+  "@shareDialogExpiryLabel": { "description": "Label of the expiry unit dropdown" },
+  "shareDialogPositiveNumber": "Enter a positive number",
+  "@shareDialogPositiveNumber": { "description": "Validation error for the expiry amount" },
+  "shareDialogCreateLink": "Create link",
+  "@shareDialogCreateLink": { "description": "Confirm button of the create-share dialog" },
+
+  "sharesTitle": "Shared links",
+  "@sharesTitle": { "description": "Shares screen title and overflow menu item" },
+  "sharesDeleteTitle": "Delete share link?",
+  "@sharesDeleteTitle": { "description": "Delete-share confirmation dialog title" },
+  "sharesDeleteBody": "The public link for \"{path}\" will stop working. This cannot be undone.",
+  "@sharesDeleteBody": {
+    "description": "Delete-share confirmation dialog body",
+    "placeholders": { "path": { "type": "String" } }
+  },
+  "sharesCouldNotDelete": "Could not delete share: {error}",
+  "@sharesCouldNotDelete": {
+    "description": "Error snackbar when deleting a share fails",
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "sharesEmpty": "No shared links yet",
+  "@sharesEmpty": { "description": "Shares screen empty state" },
+  "sharesEmptyHint": "Use “Share link” on a file or folder to create one.",
+  "@sharesEmptyHint": { "description": "Shares screen empty-state hint" },
+  "sharesActionsTooltip": "Share actions",
+  "@sharesActionsTooltip": { "description": "Tooltip of the per-share actions menu" },
+  "sharesCopyLink": "Copy link",
+  "@sharesCopyLink": { "description": "Share actions menu: copy the public URL" },
+
+  "statusTitle": "Status",
+  "@statusTitle": { "description": "Status screen title and overflow menu item" },
+  "statusSectionStorage": "Storage",
+  "@statusSectionStorage": { "description": "Status section header: disk usage" },
+  "statusSectionAccount": "Account",
+  "@statusSectionAccount": { "description": "Status section header: signed-in user" },
+  "statusSectionServer": "Server",
+  "@statusSectionServer": { "description": "Status section header: server info" },
+  "statusDiskUsageUnavailable": "Disk usage unavailable",
+  "@statusDiskUsageUnavailable": { "description": "Shown when the source reports no capacity" },
+  "statusDiskUsageUnavailableHint": "The server did not report capacity for this source.",
+  "@statusDiskUsageUnavailableHint": { "description": "Subtitle explaining missing disk usage" },
+  "statusUsedOfTotal": "{used} of {total} used ({percent}%)",
+  "@statusUsedOfTotal": {
+    "description": "Disk usage line; used/total are humanized sizes, percent has one decimal",
+    "placeholders": {
+      "used": { "type": "String" },
+      "total": { "type": "String" },
+      "percent": { "type": "String" }
+    }
+  },
+  "statusFree": "{free} free",
+  "@statusFree": {
+    "description": "Free space line; free is a humanized size",
+    "placeholders": { "free": { "type": "String" } }
+  },
+  "statusUnknownUser": "Unknown user",
+  "@statusUnknownUser": { "description": "Shown when the username is unknown" },
+  "statusReadOnly": "Read-only",
+  "@statusReadOnly": { "description": "Shown when the user has no write permissions" },
+  "statusPermissions": "Permissions: {permissions}",
+  "@statusPermissions": {
+    "description": "Comma-joined list of granted permissions",
+    "placeholders": { "permissions": { "type": "String" } }
+  },
+  "statusPermCreate": "create",
+  "@statusPermCreate": { "description": "Permission name: create" },
+  "statusPermModify": "modify",
+  "@statusPermModify": { "description": "Permission name: modify" },
+  "statusLoadingServerInfo": "Loading server info…",
+  "@statusLoadingServerInfo": { "description": "Server card while settings load" },
+  "statusServerInfoUnavailable": "Server info unavailable",
+  "@statusServerInfoUnavailable": { "description": "Server card when settings are inaccessible" },
+  "statusRequiresAdmin": "Requires an administrator account.",
+  "@statusRequiresAdmin": { "description": "Subtitle explaining missing server info" },
+  "statusSignupEnabled": "Signup enabled",
+  "@statusSignupEnabled": { "description": "Server card subtitle when signup is on" },
+  "statusSignupDisabled": "Signup disabled",
+  "@statusSignupDisabled": { "description": "Server card subtitle when signup is off" },
+  "statusManageSharedLinks": "Manage shared links",
+  "@statusManageSharedLinks": { "description": "Button that opens the shares screen" },
+
+  "textViewerCouldNotLoad": "Could not load {name}: {error}",
+  "@textViewerCouldNotLoad": {
+    "description": "Error when fetching a text file fails",
+    "placeholders": { "name": { "type": "String" }, "error": { "type": "String" } }
+  },
+  "textViewerEmptyFile": "(empty file)",
+  "@textViewerEmptyFile": { "description": "Shown for a zero-byte text file" },
+  "textViewerTooLarge": "Too large to preview ({size}).",
+  "@textViewerTooLarge": {
+    "description": "Shown when a text file exceeds the preview cap; size is humanized",
+    "placeholders": { "size": { "type": "String" } }
+  },
+
+  "transfersTitle": "Transfers",
+  "@transfersTitle": { "description": "Transfers screen title and app bar tooltip" },
+  "transfersClearFinished": "Clear finished",
+  "@transfersClearFinished": { "description": "Tooltip: remove completed/failed transfers from the list" },
+  "transfersEmpty": "No transfers yet",
+  "@transfersEmpty": { "description": "Transfers screen empty state" },
+  "transfersProgressSemantics": "Transfer progress",
+  "@transfersProgressSemantics": { "description": "Semantics label of the per-transfer progress bar" },
+  "transfersStatusQueued": "Queued",
+  "@transfersStatusQueued": { "description": "Transfer status: waiting to start" },
+  "transfersStatusTransferring": "Transferring {percent}%",
+  "@transfersStatusTransferring": {
+    "description": "Transfer status: running, with percent complete",
+    "placeholders": { "percent": { "type": "int" } }
+  },
+  "transfersStatusPaused": "Paused {percent}%",
+  "@transfersStatusPaused": {
+    "description": "Transfer status: paused, with percent complete",
+    "placeholders": { "percent": { "type": "int" } }
+  },
+  "transfersStatusRetrying": "Waiting to retry…",
+  "@transfersStatusRetrying": { "description": "Transfer status: backing off before a retry" },
+  "transfersStatusComplete": "Complete",
+  "@transfersStatusComplete": { "description": "Transfer status: finished successfully" },
+  "transfersStatusFailed": "Failed",
+  "@transfersStatusFailed": { "description": "Transfer status: failed" },
+  "transfersStatusCanceled": "Canceled",
+  "@transfersStatusCanceled": { "description": "Transfer status: canceled by the user" },
+
+  "videoCouldNotPlay": "Could not play video:\n{error}",
+  "@videoCouldNotPlay": {
+    "description": "Error shown (and copied) when video playback fails",
+    "placeholders": { "error": { "type": "String" } }
+  }
+}

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -318,6 +319,64 @@ void main() {
           'toPath': '/new name',
         });
       });
+    });
+  });
+
+  group('base URL policy', () {
+    test('rejects http:// to a non-local host', () {
+      expect(() => FileBrowserClient(baseUrl: 'http://demo.example.com'),
+          throwsArgumentError);
+      expect(FileBrowserClient.isAllowedBaseUrl('http://demo.example.com'),
+          isFalse);
+    });
+
+    test('allows http:// to loopback hosts (dev/test servers)', () {
+      for (final base in [
+        'http://localhost:8080',
+        'http://127.0.0.1:8080',
+        'http://10.0.2.2:8080', // emulator alias for its host
+      ]) {
+        expect(FileBrowserClient(baseUrl: base).baseUrl, base);
+        expect(FileBrowserClient.isAllowedBaseUrl(base), isTrue);
+      }
+    });
+
+    test('a schemeless host defaults to https://', () {
+      expect(FileBrowserClient(baseUrl: 'demo.example.com').baseUrl,
+          'https://demo.example.com');
+    });
+  });
+
+  group('chunked upload protocol', () {
+    test('uploadChunk posts raw bytes with offset/total headers', () async {
+      final (client, adapter) = makeClient((_) => MockAdapter.json({}));
+      final bytes = List<int>.generate(8, (i) => i);
+      await client.uploadChunk('/dir/big.bin',
+          offset: 16,
+          totalSize: 24,
+          bytes: Uint8List.fromList(bytes),
+          override: true);
+      final req = adapter.requests.last;
+      expect(req.method, 'POST');
+      expect(req.uri.path, '/api/resources');
+      expect(req.uri.queryParameters['path'], '/dir/big.bin');
+      expect(req.uri.queryParameters['source'], 'mydisk');
+      expect(req.uri.queryParameters['override'], 'true');
+      expect(req.headers['X-File-Chunk-Offset'], '16');
+      expect(req.headers['X-File-Total-Size'], '24');
+      expect(req.headers['Authorization'], 'Bearer $liveToken');
+      expect(adapter.bodies.last, bytes);
+    });
+
+    test('pauseUpload posts to /api/resources/pause with path + source',
+        () async {
+      final (client, adapter) = makeClient((_) => MockAdapter.json({}));
+      await client.pauseUpload('/dir/big.bin');
+      final req = adapter.requests.last;
+      expect(req.method, 'POST');
+      expect(req.uri.path, '/api/resources/pause');
+      expect(req.uri.queryParameters['path'], '/dir/big.bin');
+      expect(req.uri.queryParameters['source'], 'mydisk');
     });
   });
 

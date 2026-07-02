@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../api/filebrowser_client.dart';
 import '../api/models.dart';
 
 /// Zero-pads to two digits.
 String _pad2(int n) => n.toString().padLeft(2, '0');
 
-/// Humanises a modified timestamp to `yyyy-MM-dd HH:mm`, or `Unknown` when
-/// absent. PURE (no zone conversion here — callers pass an already-local
-/// `DateTime`) so it is unit-testable. See `file_details_test.dart`.
-String formatModified(DateTime? dt) {
-  if (dt == null) return 'Unknown';
+/// Humanises a modified timestamp to `yyyy-MM-dd HH:mm`, or the localized
+/// "Unknown" when absent. PURE (no zone conversion here — callers pass an
+/// already-local `DateTime`) so it is unit-testable; tests construct [loc] via
+/// `lookupAppLocalizations`. See `file_details_test.dart`.
+String formatModified(AppLocalizations loc, DateTime? dt) {
+  if (dt == null) return loc.fileDetailsUnknown;
   return '${dt.year}-${_pad2(dt.month)}-${_pad2(dt.day)} '
       '${_pad2(dt.hour)}:${_pad2(dt.minute)}';
 }
@@ -65,7 +67,8 @@ class _FileDetailsSheetState extends State<FileDetailsSheet> {
       if (!mounted) return;
       setState(() {
         _computing = false;
-        _checksum = sum.isEmpty ? '(empty)' : sum;
+        _checksum =
+            sum.isEmpty ? AppLocalizations.of(context).fileDetailsChecksumEmpty : sum;
       });
     } catch (e) {
       if (!mounted) return;
@@ -80,12 +83,14 @@ class _FileDetailsSheetState extends State<FileDetailsSheet> {
     Clipboard.setData(ClipboardData(text: value));
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
-      ..showSnackBar(const SnackBar(
-          content: Text('Copied'), duration: Duration(seconds: 2)));
+      ..showSnackBar(SnackBar(
+          content: Text(AppLocalizations.of(context).fileDetailsCopied),
+          duration: const Duration(seconds: 2)));
   }
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     final r = widget.resource;
     final ext = (r.extension ?? '').replaceAll('.', '');
     final typeLabel = [
@@ -113,20 +118,20 @@ class _FileDetailsSheetState extends State<FileDetailsSheet> {
             ),
             const SizedBox(height: 16),
             _DetailRow(
-              label: 'Path',
+              label: loc.fileDetailsPath,
               value: r.path,
               onCopy: () => _copy(r.path),
             ),
             _DetailRow(
-              label: 'Size',
+              label: loc.fileDetailsSize,
               value: r.isDir ? '—' : formatBytes(r.size),
             ),
             _DetailRow(
-              label: 'Modified',
-              value: formatModified(r.modifiedAt?.toLocal()),
+              label: loc.fileDetailsModified,
+              value: formatModified(loc, r.modifiedAt?.toLocal()),
             ),
             if (typeLabel.isNotEmpty)
-              _DetailRow(label: 'Type', value: typeLabel),
+              _DetailRow(label: loc.fileDetailsType, value: typeLabel),
             if (!r.isDir) ...[
               const Divider(height: 28),
               _checksumSection(),
@@ -138,9 +143,10 @@ class _FileDetailsSheetState extends State<FileDetailsSheet> {
   }
 
   Widget _checksumSection() {
+    final loc = AppLocalizations.of(context);
     if (_checksum != null) {
       return _DetailRow(
-        label: 'sha256',
+        label: loc.fileDetailsSha256,
         value: _checksum!,
         monospace: true,
         onCopy: () => _copy(_checksum!),
@@ -158,13 +164,13 @@ class _FileDetailsSheetState extends State<FileDetailsSheet> {
                   child: CircularProgressIndicator(strokeWidth: 2))
               : const Icon(Icons.tag, size: 18),
           label: Text(_computing
-              ? 'Computing…'
-              : 'Compute checksum (sha256)'),
+              ? loc.fileDetailsComputing
+              : loc.fileDetailsComputeChecksum),
         ),
         if (_checksumError != null)
           Padding(
             padding: const EdgeInsets.only(top: 8),
-            child: Text('Checksum failed: $_checksumError',
+            child: Text(loc.fileDetailsChecksumFailed(_checksumError!),
                 style: TextStyle(color: Theme.of(context).colorScheme.error)),
           ),
       ],
@@ -210,9 +216,8 @@ class _DetailRow extends StatelessWidget {
           ),
           if (onCopy != null)
             IconButton(
-              visualDensity: VisualDensity.compact,
               icon: const Icon(Icons.copy, size: 18),
-              tooltip: 'Copy',
+              tooltip: AppLocalizations.of(context).actionCopy,
               onPressed: onCopy,
             ),
         ],

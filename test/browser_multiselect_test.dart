@@ -12,6 +12,7 @@ import 'package:filebrowser_mobile/src/transfers/transfer_service.dart';
 import 'package:filebrowser_mobile/src/ui/browser_screen.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
+import 'support/l10n.dart';
 import 'support/mock_adapter.dart';
 
 class _FakeAuth extends AuthController {
@@ -67,7 +68,7 @@ void main() {
         Provider<TransferService>(create: (_) => TransferService()),
         ChangeNotifierProvider<AuthController>.value(value: auth),
       ],
-      child: const MaterialApp(home: BrowserScreen()),
+      child: l10nWrap(const BrowserScreen()),
     ));
     await tester.pumpAndSettle();
     return adapter;

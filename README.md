@@ -45,6 +45,10 @@ uploads/downloads, share-into-app, and open-with hand-off.
   - **Background uploads/downloads** that keep running when the app is
     backgrounded or closed, via a native foreground service with progress
     notifications (`background_downloader`).
+  - **Resumable chunked uploads** for large files (> 10 MiB): sent as
+    sequential offset chunks (the same scheme quantum's web UI uses), with
+    graceful **pause/resume mid-file**, automatic retry of transient failures,
+    and exact progress. Small files go out as a single background POST.
   - **Upload conflict handling** — existing remote paths are probed and you
     choose overwrite / skip / keep-both.
   - A dedicated **transfers screen** listening to live progress updates.
@@ -69,6 +73,8 @@ passed as query parameters (not URL segments), and every path-scoped call carrie
 | Download     | `GET /api/resources/download?source=<S>&file=<p>` (repeat `file=` + `algo=zip` to bundle) |
 | Preview      | `GET /api/resources/preview?source=<S>&path=<p>&size=<small\|large\|original>` |
 | Upload       | `POST /api/resources?path=<p>&source=<S>&override=…`, raw bytes as the body |
+| Chunked upload | same POST with `X-File-Chunk-Offset` / `X-File-Total-Size` headers per chunk; server finalizes on the last chunk |
+| Pause upload | `POST /api/resources/pause?path=<p>&source=<S>` (preserves the server-side partial for resume) |
 | New folder   | `POST /api/resources?path=<p>&source=<S>&isDir=true`                      |
 | Delete       | `DELETE /api/resources?path=<p>&source=<S>`                               |
 | Move / copy  | `PATCH /api/resources`, JSON `{action, items:[{fromSource,fromPath,toSource,toPath}], overwrite, rename}` |
@@ -87,6 +93,9 @@ renew + replay per request. Public share pages are served at
 ```
 lib/
   main.dart
+  l10n/
+    app_en.arb                   # English source strings (gen_l10n template)
+    app_localizations*.dart      # generated — do not edit by hand
   src/
     app.dart                     # MaterialApp + auth gate (setup/lock/source/browser)
     api/
@@ -187,6 +196,14 @@ when flutter isn't already resolvable):
   job (pub get → analyze → `flutter test --exclude-tags integration`) and an
   `integration` job that boots the quantum server via `tool/serve.sh` and runs the
   integration-tagged tests against it.
+- **Localization** (`gen_l10n`): all user-facing strings live in
+  `lib/l10n/app_en.arb`; `flutter pub get` / `flutter gen-l10n` generates
+  `lib/l10n/app_localizations*.dart` (config in `l10n.yaml`). To add a locale,
+  copy `app_en.arb` → `app_<locale>.arb` (e.g. `app_de.arb`), translate the
+  values (keep the keys and `{placeholders}`), and re-run `flutter gen-l10n` —
+  the new locale is picked up automatically via
+  `AppLocalizations.supportedLocales`. Widget tests wrap screens with
+  `test/support/l10n.dart`'s `l10nWrap(...)` so the delegates are installed.
 
 ## Android configuration (already present)
 
@@ -197,17 +214,25 @@ when flutter isn't already resolvable):
   `background_downloader` foreground service).
 - **Share-into-app intent filters** on `MainActivity`: `SEND` and `SEND_MULTIPLE`
   for `image/*`, `video/*`, `audio/*`, and `application/*`.
-- `android:usesCleartextTraffic="true"` so plain-HTTP quantum instances work
-  (use HTTPS in production).
+- A `networkSecurityConfig` that **denies cleartext traffic app-wide** — the
+  server URL must be `https://`, except for loopback hosts (`localhost`,
+  `127.0.0.1`, and the emulator's `10.0.2.2`), where traffic never crosses a
+  network — used by dev setups and the integration tests. Backup and
+  device-to-device transfer are likewise disabled (`allowBackup="false"` +
+  data-extraction rules), since app storage holds Keystore-wrapped credentials.
 
 `local_auth` requires the host Activity to extend `FlutterFragmentActivity`, and
 `minSdkVersion` is set to 23+ for biometrics — both are already configured.
 
 ## Known device-only caveats
 
-- **No resumable uploads.** Uploads go out as a single `POST` of raw bytes via
-  `background_downloader`; a plain POST can't be paused/resumed, so an
-  interrupted large upload restarts.
+- **Chunked uploads run in the app process.** Unlike the single-POST path
+  (which rides `background_downloader`'s foreground service), a chunked upload
+  needs the app alive; Android may stop it if the app is killed in the
+  background. A transport error mid-chunk makes the server discard its partial
+  file, so the automatic retry restarts from the beginning — only the graceful
+  in-app pause preserves the server-side partial for resume (v1.4.0 has no
+  endpoint to query the server's offset).
 - **Downloads / save location** rely on Android SAF and scoped storage; the
   exact destination depends on the folder you grant, and behaviour varies by
   Android version.

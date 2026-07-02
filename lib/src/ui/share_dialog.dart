@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../api/filebrowser_client.dart';
 import '../api/models.dart';
 import '../api/share_link.dart';
@@ -24,6 +25,7 @@ Future<bool> showCreateShareDialog(
   if (options == null || !context.mounted) return false;
 
   final messenger = ScaffoldMessenger.of(context);
+  final loc = AppLocalizations.of(context);
   final expiry = shareExpiryParams(options.amount, options.unit);
   FbShare share;
   try {
@@ -34,7 +36,7 @@ Future<bool> showCreateShareDialog(
       unit: expiry.unit,
     );
   } catch (e) {
-    showErrorSnackBar(messenger, 'Could not create share: $e');
+    showErrorSnackBar(messenger, loc.shareCouldNotCreate('$e'));
     return false;
   }
   if (!context.mounted) return true;
@@ -55,7 +57,7 @@ Future<void> showShareResultDialog(
   return showDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Share link'),
+      title: Text(AppLocalizations.of(ctx).browserShareLink),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -68,8 +70,8 @@ Future<void> showShareResultDialog(
                   size: 16, color: Theme.of(ctx).colorScheme.onSurfaceVariant),
               const SizedBox(width: 6),
               Text(share.hasPassword
-                  ? 'Password protected'
-                  : 'No password'),
+                  ? AppLocalizations.of(ctx).sharePasswordProtected
+                  : AppLocalizations.of(ctx).shareNoPassword),
             ],
           ),
           const SizedBox(height: 4),
@@ -86,23 +88,24 @@ Future<void> showShareResultDialog(
       actions: [
         TextButton.icon(
           icon: const Icon(Icons.share_outlined, size: 18),
-          label: const Text('Share'),
+          label: Text(AppLocalizations.of(ctx).actionShare),
           onPressed: () => Share.share(url),
         ),
         TextButton.icon(
           icon: const Icon(Icons.copy, size: 18),
-          label: const Text('Copy'),
+          label: Text(AppLocalizations.of(ctx).actionCopy),
           onPressed: () {
             Clipboard.setData(ClipboardData(text: url));
             ScaffoldMessenger.of(ctx).showSnackBar(
-              const SnackBar(
-                  content: Text('Link copied'),
-                  duration: Duration(seconds: 2)),
+              SnackBar(
+                  content: Text(AppLocalizations.of(ctx).shareLinkCopied),
+                  duration: const Duration(seconds: 2)),
             );
           },
         ),
         FilledButton(
-            onPressed: () => Navigator.pop(ctx), child: const Text('Done')),
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(AppLocalizations.of(ctx).actionDone)),
       ],
     ),
   );
@@ -140,9 +143,10 @@ class _ShareOptionsDialogState extends State<_ShareOptionsDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     final timed = _unit != ShareExpiryUnit.never;
     return AlertDialog(
-      title: const Text('Share link'),
+      title: Text(loc.browserShareLink),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -155,9 +159,11 @@ class _ShareOptionsDialogState extends State<_ShareOptionsDialog> {
             controller: _password,
             obscureText: _obscure,
             decoration: InputDecoration(
-              labelText: 'Password (optional)',
+              labelText: loc.shareDialogPasswordLabel,
               suffixIcon: IconButton(
                 icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
+                tooltip:
+                    _obscure ? loc.loginShowPassword : loc.loginHidePassword,
                 onPressed: () => setState(() => _obscure = !_obscure),
               ),
             ),
@@ -178,7 +184,7 @@ class _ShareOptionsDialogState extends State<_ShareOptionsDialog> {
                       }
                     },
                     decoration: InputDecoration(
-                      labelText: 'Expires',
+                      labelText: loc.shareDialogExpiresLabel,
                       errorText: _amountError,
                     ),
                   ),
@@ -188,7 +194,8 @@ class _ShareOptionsDialogState extends State<_ShareOptionsDialog> {
               Expanded(
                 child: DropdownButtonFormField<ShareExpiryUnit>(
                   initialValue: _unit,
-                  decoration: const InputDecoration(labelText: 'Expiry'),
+                  decoration:
+                      InputDecoration(labelText: loc.shareDialogExpiryLabel),
                   items: [
                     for (final u in ShareExpiryUnit.values)
                       DropdownMenuItem(value: u, child: Text(u.label)),
@@ -204,12 +211,12 @@ class _ShareOptionsDialogState extends State<_ShareOptionsDialog> {
       actions: [
         TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel')),
+            child: Text(loc.actionCancel)),
         FilledButton(
           onPressed: () {
             final amount = int.tryParse(_amount.text.trim()) ?? 0;
             if (timed && amount <= 0) {
-              setState(() => _amountError = 'Enter a positive number');
+              setState(() => _amountError = loc.shareDialogPositiveNumber);
               return;
             }
             Navigator.pop(
@@ -217,7 +224,7 @@ class _ShareOptionsDialogState extends State<_ShareOptionsDialog> {
               _ShareOptions(_password.text, amount, _unit),
             );
           },
-          child: const Text('Create link'),
+          child: Text(loc.shareDialogCreateLink),
         ),
       ],
     );

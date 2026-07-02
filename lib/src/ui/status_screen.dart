@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../api/filebrowser_client.dart';
 import '../api/models.dart';
 import '../auth/auth_controller.dart';
@@ -61,20 +62,21 @@ class _StatusScreenState extends State<StatusScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Status')),
+      appBar: AppBar(title: Text(loc.statusTitle)),
       body: RefreshIndicator(
         onRefresh: () async => setState(_load),
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            _section('Storage'),
+            _section(loc.statusSectionStorage),
             _usageCard(),
             const SizedBox(height: 24),
-            _section('Account'),
+            _section(loc.statusSectionAccount),
             _userCard(),
             const SizedBox(height: 24),
-            _section('Server'),
+            _section(loc.statusSectionServer),
             _serverCard(),
             const SizedBox(height: 24),
             _actions(context),
@@ -116,14 +118,14 @@ class _StatusScreenState extends State<StatusScreen> {
             ),
           );
         }
+        final loc = AppLocalizations.of(context);
         final usage = snap.data;
         if (usage == null || !diskUsageAvailable(usage)) {
-          return const Card(
+          return Card(
             child: ListTile(
-              leading: Icon(Icons.help_outline),
-              title: Text('Disk usage unavailable'),
-              subtitle:
-                  Text('The server did not report capacity for this source.'),
+              leading: const Icon(Icons.help_outline),
+              title: Text(loc.statusDiskUsageUnavailable),
+              subtitle: Text(loc.statusDiskUsageUnavailableHint),
             ),
           );
         }
@@ -141,10 +143,10 @@ class _StatusScreenState extends State<StatusScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Text('${usage.usedHuman} of ${usage.totalHuman} used '
-                    '(${(usage.usedFraction * 100).toStringAsFixed(1)}%)'),
+                Text(loc.statusUsedOfTotal(usage.usedHuman, usage.totalHuman,
+                    (usage.usedFraction * 100).toStringAsFixed(1))),
                 const SizedBox(height: 4),
-                Text('${usage.freeHuman} free',
+                Text(loc.statusFree(usage.freeHuman),
                     style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurfaceVariant)),
               ],
@@ -156,20 +158,21 @@ class _StatusScreenState extends State<StatusScreen> {
   }
 
   Widget _userCard() {
+    final loc = AppLocalizations.of(context);
     final user = widget.user;
     final perms = <String>[
-      if (user?.canCreate ?? false) 'create',
-      if (user?.canModify ?? false) 'modify',
+      if (user?.canCreate ?? false) loc.statusPermCreate,
+      if (user?.canModify ?? false) loc.statusPermModify,
     ];
     return Card(
       child: ListTile(
         leading: const Icon(Icons.person_outline),
         title: Text(user?.username.isNotEmpty == true
             ? user!.username
-            : 'Unknown user'),
+            : loc.statusUnknownUser),
         subtitle: Text(perms.isEmpty
-            ? 'Read-only'
-            : 'Permissions: ${perms.join(', ')}'),
+            ? loc.statusReadOnly
+            : loc.statusPermissions(perms.join(', '))),
       ),
     );
   }
@@ -178,29 +181,32 @@ class _StatusScreenState extends State<StatusScreen> {
     return FutureBuilder<FbServerCaps?>(
       future: _settings,
       builder: (context, snap) {
+        final loc = AppLocalizations.of(context);
         if (snap.connectionState == ConnectionState.waiting) {
-          return const Card(
+          return Card(
             child: ListTile(
-              leading: Icon(Icons.dns_outlined),
-              title: Text('Loading server info…'),
+              leading: const Icon(Icons.dns_outlined),
+              title: Text(loc.statusLoadingServerInfo),
             ),
           );
         }
         final caps = snap.data;
         if (caps == null) {
-          return const Card(
+          return Card(
             child: ListTile(
-              leading: Icon(Icons.dns_outlined),
-              title: Text('Server info unavailable'),
-              subtitle: Text('Requires an administrator account.'),
+              leading: const Icon(Icons.dns_outlined),
+              title: Text(loc.statusServerInfoUnavailable),
+              subtitle: Text(loc.statusRequiresAdmin),
             ),
           );
         }
         return Card(
           child: ListTile(
             leading: const Icon(Icons.dns_outlined),
-            title: Text(caps.name.isEmpty ? 'File Browser' : caps.name),
-            subtitle: Text('Signup ${caps.signup ? 'enabled' : 'disabled'}'),
+            title: Text(caps.name.isEmpty ? loc.appTitle : caps.name),
+            subtitle: Text(caps.signup
+                ? loc.statusSignupEnabled
+                : loc.statusSignupDisabled),
           ),
         );
       },
@@ -208,6 +214,7 @@ class _StatusScreenState extends State<StatusScreen> {
   }
 
   Widget _actions(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     final auth = context.read<AuthController>();
     return Column(
       children: [
@@ -216,13 +223,15 @@ class _StatusScreenState extends State<StatusScreen> {
             builder: (_) => SharesScreen(client: widget.client),
           )),
           icon: const Icon(Icons.link),
-          label: const Text('Manage shared links'),
+          label: Text(loc.statusManageSharedLinks),
         ),
         const SizedBox(height: 8),
         OutlinedButton.icon(
           onPressed: () => auth.signOut(),
           icon: const Icon(Icons.lock_outline),
-          label: Text('Lock${widget.user != null ? ' (${widget.user!.username})' : ''}'),
+          label: Text(widget.user != null
+              ? loc.lockWithUser(widget.user!.username)
+              : loc.actionLock),
         ),
         const SizedBox(height: 8),
         OutlinedButton.icon(
@@ -230,7 +239,7 @@ class _StatusScreenState extends State<StatusScreen> {
               foregroundColor: Theme.of(context).colorScheme.error),
           onPressed: () => auth.signOut(forget: true),
           icon: const Icon(Icons.logout),
-          label: const Text('Sign out & forget'),
+          label: Text(loc.actionSignOutForget),
         ),
       ],
     );

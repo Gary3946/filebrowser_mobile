@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../api/filebrowser_client.dart';
 import '../auth/auth_controller.dart';
 
@@ -39,11 +40,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     final auth = context.watch<AuthController>();
     final busy = auth.stage == AuthStage.busy;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Connect to File Browser')),
+      appBar: AppBar(title: Text(loc.loginTitle)),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -56,16 +58,18 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   TextFormField(
                     controller: _url,
-                    decoration: const InputDecoration(
-                      labelText: 'Server URL',
-                      hintText: 'https://files.example.com',
+                    decoration: InputDecoration(
+                      labelText: loc.loginServerUrlLabel,
+                      hintText: loc.loginServerUrlHint,
                     ),
                     keyboardType: TextInputType.url,
                     autocorrect: false,
                     validator: (v) {
-                      if (v == null || v.trim().isEmpty) return 'Required';
+                      if (v == null || v.trim().isEmpty) {
+                        return loc.loginValidationRequired;
+                      }
                       if (!FileBrowserClient.isAllowedBaseUrl(v)) {
-                        return 'Use https:// — insecure http:// is not allowed';
+                        return loc.loginValidationHttpsOnly;
                       }
                       return null;
                     },
@@ -73,25 +77,31 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _user,
-                    decoration: const InputDecoration(labelText: 'Username'),
+                    decoration:
+                        InputDecoration(labelText: loc.loginUsernameLabel),
                     autocorrect: false,
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Required' : null,
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? loc.loginValidationRequired
+                        : null,
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _pass,
                     obscureText: _obscure,
                     decoration: InputDecoration(
-                      labelText: 'Password',
+                      labelText: loc.loginPasswordLabel,
                       suffixIcon: IconButton(
                         icon: Icon(
                             _obscure ? Icons.visibility : Icons.visibility_off),
+                        tooltip: _obscure
+                            ? loc.loginShowPassword
+                            : loc.loginHidePassword,
                         onPressed: () => setState(() => _obscure = !_obscure),
                       ),
                     ),
-                    validator: (v) =>
-                        (v == null || v.isEmpty) ? 'Required' : null,
+                    validator: (v) => (v == null || v.isEmpty)
+                        ? loc.loginValidationRequired
+                        : null,
                   ),
                   const SizedBox(height: 24),
                   if (auth.error != null) ...[
@@ -109,7 +119,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               width: 20,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Text('Continue'),
+                          : Text(loc.loginContinue),
                     ),
                   ),
                 ],
@@ -128,6 +138,7 @@ class LockScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     final auth = context.watch<AuthController>();
     final busy = auth.stage == AuthStage.busy;
     return Scaffold(
@@ -137,7 +148,7 @@ class LockScreen extends StatelessWidget {
           children: [
             const Icon(Icons.lock_outline, size: 64),
             const SizedBox(height: 16),
-            const Text('File Browser is locked'),
+            Text(loc.lockTitle),
             const SizedBox(height: 24),
             if (auth.error != null)
               Padding(
@@ -151,13 +162,13 @@ class LockScreen extends StatelessWidget {
               onPressed:
                   busy ? null : () => context.read<AuthController>().unlockWithBiometrics(),
               icon: const Icon(Icons.fingerprint),
-              label: const Text('Unlock'),
+              label: Text(loc.lockUnlock),
             ),
             TextButton(
               onPressed: busy
                   ? null
                   : () => context.read<AuthController>().signOut(forget: true),
-              child: const Text('Use a different server'),
+              child: Text(loc.lockUseDifferentServer),
             ),
           ],
         ),
@@ -177,7 +188,7 @@ class SourceSelectScreen extends StatelessWidget {
     final auth = context.watch<AuthController>();
     final sources = auth.availableSources;
     return Scaffold(
-      appBar: AppBar(title: const Text('Choose a source')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context).sourceSelectTitle)),
       body: ListView.separated(
         itemCount: sources.length,
         separatorBuilder: (_, __) => const Divider(height: 1),

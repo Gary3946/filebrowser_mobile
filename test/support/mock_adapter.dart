@@ -16,6 +16,10 @@ class MockAdapter implements HttpClientAdapter {
   /// Every request the client issued, in order.
   final List<RequestOptions> requests = [];
 
+  /// Raw body bytes per request, index-aligned with [requests] (empty when the
+  /// request had no streamed body).
+  final List<Uint8List> bodies = [];
+
   @override
   Future<ResponseBody> fetch(
     RequestOptions options,
@@ -23,6 +27,13 @@ class MockAdapter implements HttpClientAdapter {
     Future<void>? cancelFuture,
   ) async {
     requests.add(options);
+    final chunks = <int>[];
+    if (requestStream != null) {
+      await for (final c in requestStream) {
+        chunks.addAll(c);
+      }
+    }
+    bodies.add(Uint8List.fromList(chunks));
     return handler(options);
   }
 

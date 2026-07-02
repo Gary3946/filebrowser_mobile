@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../l10n/app_localizations.dart';
+
 /// Shared, copyable error presentation (product item 16: every error surface
 /// must be copyable). No external dependency — copying uses
 /// `flutter/services` [Clipboard].
@@ -15,20 +17,23 @@ import 'package:flutter/services.dart';
 /// everywhere.
 void copyErrorToClipboard(String message, [ScaffoldMessengerState? messenger]) {
   Clipboard.setData(ClipboardData(text: message));
-  messenger?.showSnackBar(
-    const SnackBar(content: Text('Error copied'), duration: Duration(seconds: 2)),
+  if (messenger == null) return;
+  final loc = AppLocalizations.of(messenger.context);
+  messenger.showSnackBar(
+    SnackBar(content: Text(loc.errorCopied), duration: const Duration(seconds: 2)),
   );
 }
 
 /// Builds the standard error [SnackBar]: the full error text plus a `COPY`
-/// action that puts that exact text on the clipboard. Pure builder so it can be
-/// unit-tested without a live [ScaffoldMessenger].
-SnackBar errorSnackBar(String message) {
+/// action that puts that exact text on the clipboard. Pure builder (localized
+/// strings come in via [loc]) so it can be unit-tested without a live
+/// [ScaffoldMessenger].
+SnackBar errorSnackBar(AppLocalizations loc, String message) {
   return SnackBar(
     content: Text(message),
     duration: const Duration(seconds: 6),
     action: SnackBarAction(
-      label: 'COPY',
+      label: loc.errorCopyAction,
       onPressed: () => copyErrorToClipboard(message),
     ),
   );
@@ -38,9 +43,10 @@ SnackBar errorSnackBar(String message) {
 /// latest failure (and its COPY action) is the one on screen. Capture the
 /// `ScaffoldMessengerState` before any `await` and pass it here.
 void showErrorSnackBar(ScaffoldMessengerState messenger, String message) {
+  final loc = AppLocalizations.of(messenger.context);
   messenger
     ..clearSnackBars()
-    ..showSnackBar(errorSnackBar(message));
+    ..showSnackBar(errorSnackBar(loc, message));
 }
 
 /// Full-screen error state for the directory listing: the message, a `Copy`
@@ -58,6 +64,7 @@ class CopyableErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return ListView(
       children: [
         const SizedBox(height: 100),
@@ -75,10 +82,10 @@ class CopyableErrorView extends StatelessWidget {
               onPressed: () =>
                   copyErrorToClipboard(message, ScaffoldMessenger.of(context)),
               icon: const Icon(Icons.copy, size: 18),
-              label: const Text('Copy'),
+              label: Text(loc.actionCopy),
             ),
             const SizedBox(width: 12),
-            FilledButton(onPressed: onRetry, child: const Text('Retry')),
+            FilledButton(onPressed: onRetry, child: Text(loc.actionRetry)),
           ],
         ),
       ],

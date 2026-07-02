@@ -1,7 +1,7 @@
 name: filebrowser_mobile
 description: Android client for File Browser (self-hosted) with biometric login and background transfers.
 publish_to: "none"
-version: 0.1.0+1
+version: 0.2.0+2
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
@@ -9,6 +9,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: any
 
   # Networking
   dio: ^5.7.0
@@ -55,3 +58,4 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  generate: true

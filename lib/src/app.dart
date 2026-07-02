@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import 'auth/auth_controller.dart';
 import 'data/preferences_store.dart';
 import 'transfers/transfer_service.dart';
@@ -31,7 +32,9 @@ class FileBrowserApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: 'File Browser',
+        onGenerateTitle: (ctx) => AppLocalizations.of(ctx).appTitle,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorSchemeSeed: Colors.indigo,

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 /// A single breadcrumb: a display [label] and the absolute [path] it links to.
 typedef Crumb = ({String label, String path});
 
@@ -34,7 +36,7 @@ class Breadcrumbs extends StatelessWidget {
     super.key,
     required this.path,
     required this.onTap,
-    this.rootLabel = 'Files',
+    this.rootLabel,
   });
 
   /// Current `/`-rooted directory path.
@@ -43,11 +45,13 @@ class Breadcrumbs extends StatelessWidget {
   /// Invoked with the absolute path of the tapped ancestor.
   final ValueChanged<String> onTap;
 
-  final String rootLabel;
+  /// Label of the root crumb; defaults to the localized "Files".
+  final String? rootLabel;
 
   @override
   Widget build(BuildContext context) {
-    final crumbs = breadcrumbsFor(path, rootLabel: rootLabel);
+    final crumbs = breadcrumbsFor(path,
+        rootLabel: rootLabel ?? AppLocalizations.of(context).breadcrumbsRoot);
     final theme = Theme.of(context);
     final activeColor = theme.appBarTheme.foregroundColor ??
         theme.colorScheme.onSurface;

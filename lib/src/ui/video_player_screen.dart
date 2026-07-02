@@ -2,6 +2,7 @@ import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../api/filebrowser_client.dart';
 import '../api/models.dart';
 import 'error_display.dart';
@@ -76,6 +77,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -86,7 +88,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           if (widget.resource != null && widget.client != null)
             IconButton(
               icon: const Icon(Icons.info_outline),
-              tooltip: 'Details',
+              tooltip: loc.actionDetails,
               onPressed: () => FileDetailsSheet.show(
                 context,
                 resource: widget.resource!,
@@ -102,18 +104,18 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Could not play video:\n$_error',
+                    Text(loc.videoCouldNotPlay(_error!),
                         textAlign: TextAlign.center,
                         style: const TextStyle(color: Colors.white70)),
                     const SizedBox(height: 16),
                     OutlinedButton.icon(
                       onPressed: () => copyErrorToClipboard(
-                        'Could not play video:\n$_error',
+                        loc.videoCouldNotPlay(_error!),
                         ScaffoldMessenger.of(context),
                       ),
                       icon: const Icon(Icons.copy, size: 18, color: Colors.white70),
-                      label: const Text('Copy',
-                          style: TextStyle(color: Colors.white70)),
+                      label: Text(loc.actionCopy,
+                          style: const TextStyle(color: Colors.white70)),
                     ),
                   ],
                 ),

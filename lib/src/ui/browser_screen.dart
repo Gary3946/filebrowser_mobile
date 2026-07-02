@@ -9,6 +9,7 @@ import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../api/filebrowser_client.dart';
 import '../api/models.dart';
 import '../auth/auth_controller.dart';
@@ -26,6 +27,7 @@ import 'selection_controller.dart';
 import 'share_dialog.dart';
 import 'shares_screen.dart';
 import 'status_screen.dart';
+import 'text_viewer_screen.dart';
 import 'transfers_screen.dart';
 import 'upload_conflict.dart';
 import 'video_player_screen.dart';
@@ -73,6 +75,8 @@ class _BrowserScreenState extends State<BrowserScreen> {
   bool _handlingShare = false;
 
   PreferencesStore get _prefs => context.read<PreferencesStore>();
+
+  AppLocalizations get _loc => AppLocalizations.of(context);
 
   /// Re-selecting the active key flips direction (like the web column headers);
   /// a new key sorts ascending. Persists the choice so it survives app restart.
@@ -193,6 +197,7 @@ class _BrowserScreenState extends State<BrowserScreen> {
     // A file: fetch its metadata (the resources endpoint returns a file's info),
     // then route exactly like a grid tap — viewer for media, action sheet else.
     final messenger = ScaffoldMessenger.of(context);
+    final loc = _loc;
     try {
       final res = await _client.listDirectory(pick.path);
       if (!mounted) return;
@@ -204,9 +209,12 @@ class _BrowserScreenState extends State<BrowserScreen> {
           _openImage(res, [res]);
         case ResourceActivation.playVideo:
           _openVideo(res);
+        case ResourceActivation.viewText:
+          _openText(res);
       }
     } catch (e) {
-      showErrorSnackBar(messenger, 'Could not open ${p.posix.basename(pick.path)}: $e');
+      showErrorSnackBar(messenger,
+          loc.browserCouldNotOpen(p.posix.basename(pick.path), '$e'));
     }
   }
 
@@ -242,13 +250,13 @@ class _BrowserScreenState extends State<BrowserScreen> {
       _selection.toggle(item.path);
       return;
     }
-    // Folders navigate; media opens the in-app viewer. Every other file (pdf,
-    // text, audio, unknown types — [ResourceActivation.openExternally]) routes
-    // to the action sheet, whose primary action is "Open with…" (hand-off to a
-    // native app). The sheet is kept as the tap target for these files because,
-    // unlike media (which host rename/delete/details inside their viewer), a
-    // non-media file has no in-app viewer — so the sheet is the only place those
-    // per-file actions (and Details) remain reachable.
+    // Folders navigate; media and text open the in-app viewer. Every other
+    // file (pdf, audio, unknown types — [ResourceActivation.openExternally])
+    // routes to the action sheet, whose primary action is "Open with…"
+    // (hand-off to a native app). The sheet is kept as the tap target for
+    // these files because, without an in-app viewer, the sheet is the only
+    // place their per-file actions (and Details) remain reachable; viewers
+    // host Details (and open-with) themselves.
     switch (item.activation) {
       case ResourceActivation.openFolder:
         _open(item.path);
@@ -256,9 +264,21 @@ class _BrowserScreenState extends State<BrowserScreen> {
         _openImage(item, all);
       case ResourceActivation.playVideo:
         _openVideo(item);
+      case ResourceActivation.viewText:
+        _openText(item);
       case ResourceActivation.openExternally:
         _showActions(item);
     }
+  }
+
+  void _openText(FbResource item) {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => TextViewerScreen(
+        client: _client,
+        resource: item,
+        onOpenExternally: () => _openWith(item),
+      ),
+    ));
   }
 
   void _openImage(FbResource item, List<FbResource> all) {
@@ -305,6 +325,7 @@ class _BrowserScreenState extends State<BrowserScreen> {
   // --- secondary actions -----------------------------------------------------
 
   Future<void> _showActions(FbResource item) async {
+    final loc = _loc;
     await showModalBottomSheet<void>(
       context: context,
       builder: (sheetCtx) => SafeArea(
@@ -320,7 +341,7 @@ class _BrowserScreenState extends State<BrowserScreen> {
             if (!item.isDir)
               ListTile(
                 leading: const Icon(Icons.open_in_new),
-                title: const Text('Open with…'),
+                title: Text(loc.actionOpenWith),
                 onTap: () {
                   Navigator.pop(sheetCtx);
                   _openWith(item);
@@ -328,7 +349,8 @@ class _BrowserScreenState extends State<BrowserScreen> {
               ),
             ListTile(
               leading: const Icon(Icons.download_outlined),
-              title: Text(item.isDir ? 'Download as zip' : 'Download'),
+              title: Text(
+                  item.isDir ? loc.browserDownloadAsZip : loc.actionDownload),
               onTap: () {
                 Navigator.pop(sheetCtx);
                 _download(item);
@@ -336,7 +358,7 @@ class _BrowserScreenState extends State<BrowserScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.link),
-              title: const Text('Share link'),
+              title: Text(loc.browserShareLink),
               onTap: () {
                 Navigator.pop(sheetCtx);
                 _shareLink(item);
@@ -344,7 +366,7 @@ class _BrowserScreenState extends State<BrowserScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.drive_file_rename_outline),
-              title: const Text('Rename'),
+              title: Text(loc.actionRename),
               onTap: () {
                 Navigator.pop(sheetCtx);
                 _rename(item);
@@ -352,7 +374,7 @@ class _BrowserScreenState extends State<BrowserScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.delete_outline),
-              title: const Text('Delete'),
+              title: Text(loc.actionDelete),
               onTap: () {
                 Navigator.pop(sheetCtx);
                 _delete(item);
@@ -360,7 +382,7 @@ class _BrowserScreenState extends State<BrowserScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.info_outline),
-              title: const Text('Details'),
+              title: Text(loc.actionDetails),
               onTap: () {
                 Navigator.pop(sheetCtx);
                 FileDetailsSheet.show(context, resource: item, client: _client);
@@ -376,9 +398,10 @@ class _BrowserScreenState extends State<BrowserScreen> {
     final choice = await _chooseSaveLocation();
     if (choice == null || !mounted) return;
     final messenger = ScaffoldMessenger.of(context);
+    final loc = _loc;
     final token = await _freshToken();
     if (token == null) {
-      showErrorSnackBar(messenger, 'Cannot download: session expired. Sign in again.');
+      showErrorSnackBar(messenger, loc.errorSessionExpiredDownload);
       return;
     }
     final url = _client.rawDownloadUri(item.path, algo: item.isDir ? 'zip' : null);
@@ -388,7 +411,8 @@ class _BrowserScreenState extends State<BrowserScreen> {
       filename: item.isDir ? '${item.name}.zip' : item.name,
       directory: choice.directory,
     );
-    messenger.showSnackBar(SnackBar(content: Text('Downloading ${item.name}…')));
+    messenger.showSnackBar(
+        SnackBar(content: Text(loc.browserDownloadingItem(item.name))));
   }
 
   /// Downloads [item] to the app cache and hands it to a native Android app via
@@ -396,12 +420,14 @@ class _BrowserScreenState extends State<BrowserScreen> {
   /// failure — is surfaced as a copyable snackbar.
   Future<void> _openWith(FbResource item) async {
     final messenger = ScaffoldMessenger.of(context);
+    final loc = _loc;
     final token = await _freshToken();
     if (token == null) {
-      showErrorSnackBar(messenger, 'Cannot open: session expired. Sign in again.');
+      showErrorSnackBar(messenger, loc.errorSessionExpiredOpen);
       return;
     }
-    messenger.showSnackBar(SnackBar(content: Text('Opening ${item.name}…')));
+    messenger.showSnackBar(
+        SnackBar(content: Text(loc.browserOpeningItem(item.name))));
     try {
       final path = await _transfers.downloadToCache(
         downloadUrl: _client.rawDownloadUri(item.path),
@@ -413,12 +439,12 @@ class _BrowserScreenState extends State<BrowserScreen> {
       showErrorSnackBar(
         messenger,
         result.type == ResultType.noAppToOpen
-            ? 'No app installed can open ${item.name}.'
-            : 'Could not open ${item.name}: ${result.message}',
+            ? loc.browserNoAppToOpen(item.name)
+            : loc.browserCouldNotOpen(item.name, result.message),
       );
     } catch (e) {
       if (!mounted) return;
-      showErrorSnackBar(messenger, 'Could not open ${item.name}: $e');
+      showErrorSnackBar(messenger, loc.browserCouldNotOpen(item.name, '$e'));
     }
   }
 
@@ -431,24 +457,25 @@ class _BrowserScreenState extends State<BrowserScreen> {
   /// storage), or null overall when the user cancels.
   Future<({String? directory})?> _chooseSaveLocation() async {
     final prefs = _prefs;
+    final loc = _loc;
     var dir = prefs.downloadDir;
     return showDialog<({String? directory})>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setLocal) => AlertDialog(
-          title: const Text('Save download to'),
+          title: Text(loc.browserSaveDownloadTo),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(dir ?? 'App storage (default)',
+              Text(dir ?? loc.browserAppStorageDefault,
                   style: const TextStyle(fontWeight: FontWeight.w500)),
               const SizedBox(height: 12),
               Align(
                 alignment: Alignment.centerLeft,
                 child: TextButton.icon(
                   icon: const Icon(Icons.folder_open),
-                  label: const Text('Change folder…'),
+                  label: Text(loc.browserChangeFolder),
                   onPressed: () async {
                     final chosen = await FilePicker.getDirectoryPath();
                     if (chosen == null) return;
@@ -461,14 +488,14 @@ class _BrowserScreenState extends State<BrowserScreen> {
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel')),
+                child: Text(loc.actionCancel)),
             FilledButton(
                 onPressed: () async {
                   // Persist the (possibly changed) folder only on confirm.
                   if (dir != prefs.downloadDir) await prefs.setDownloadDir(dir);
                   if (ctx.mounted) Navigator.pop(ctx, (directory: dir));
                 },
-                child: const Text('Download')),
+                child: Text(loc.actionDownload)),
           ],
         ),
       ),
@@ -479,31 +506,35 @@ class _BrowserScreenState extends State<BrowserScreen> {
   /// overflow menu, persisting it in [PreferencesStore.downloadDir].
   Future<void> _setDownloadFolder() async {
     final messenger = ScaffoldMessenger.of(context);
+    final loc = _loc;
     final prefs = _prefs;
     final chosen = await FilePicker.getDirectoryPath();
     if (chosen == null) return;
     await prefs.setDownloadDir(chosen);
     messenger.showSnackBar(
-        SnackBar(content: Text('Downloads will save to $chosen')));
+        SnackBar(content: Text(loc.browserDownloadsSaveTo(chosen))));
   }
 
   Future<void> _rename(FbResource item) async {
+    final loc = _loc;
     final controller = TextEditingController(text: item.name);
     final newName = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Rename'),
+        title: Text(loc.actionRename),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(labelText: 'New name'),
+          decoration: InputDecoration(labelText: loc.browserNewNameLabel),
           onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(loc.actionCancel)),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: const Text('Rename'),
+            child: Text(loc.actionRename),
           ),
         ],
       ),
@@ -517,24 +548,27 @@ class _BrowserScreenState extends State<BrowserScreen> {
       await _client.rename(item.path, dest);
       _open(_path);
     } catch (e) {
-      showErrorSnackBar(messenger, 'Rename failed: $e');
+      showErrorSnackBar(messenger, loc.browserRenameFailed('$e'));
     }
   }
 
   Future<void> _delete(FbResource item) async {
+    final loc = _loc;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Delete ${item.name}?'),
+        title: Text(loc.browserDeleteItemTitle(item.name)),
         content: Text(item.isDir
-            ? 'This deletes the folder and everything in it.'
-            : 'This cannot be undone.'),
+            ? loc.browserDeleteFolderWarning
+            : loc.browserDeleteFileWarning),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(loc.actionCancel)),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Theme.of(ctx).colorScheme.error),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
+            child: Text(loc.actionDelete),
           ),
         ],
       ),
@@ -546,7 +580,7 @@ class _BrowserScreenState extends State<BrowserScreen> {
       await _client.delete(item.path);
       _open(_path);
     } catch (e) {
-      showErrorSnackBar(messenger, 'Delete failed: $e');
+      showErrorSnackBar(messenger, loc.browserDeleteFailed('$e'));
     }
   }
 
@@ -562,22 +596,21 @@ class _BrowserScreenState extends State<BrowserScreen> {
   Future<void> _deleteSelected() async {
     final items = _selectedResources();
     if (items.isEmpty) return;
+    final loc = _loc;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Delete ${items.length} item(s)?'),
-        content: const Text(
-            'Selected files and folders (with their contents) will be '
-            'permanently deleted. This cannot be undone.'),
+        title: Text(loc.browserDeleteCountTitle(items.length)),
+        content: Text(loc.browserDeleteSelectedWarning),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+              child: Text(loc.actionCancel)),
           FilledButton(
             style: FilledButton.styleFrom(
                 backgroundColor: Theme.of(ctx).colorScheme.error),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
+            child: Text(loc.actionDelete),
           ),
         ],
       ),
@@ -596,9 +629,8 @@ class _BrowserScreenState extends State<BrowserScreen> {
     _selection.exit();
     _open(_path);
     if (failures.isNotEmpty) {
-      showErrorSnackBar(
-          messenger, 'Delete failed for ${failures.length} item(s):\n'
-              '${failures.join('\n')}');
+      showErrorSnackBar(messenger,
+          loc.browserDeleteFailedFor(failures.length, failures.join('\n')));
     }
   }
 
@@ -609,6 +641,7 @@ class _BrowserScreenState extends State<BrowserScreen> {
     final items = _selectedResources();
     if (items.isEmpty) return;
     final messenger = ScaffoldMessenger.of(context);
+    final loc = _loc;
     if (items.length == 1 && !items.first.isDir) {
       _selection.exit();
       await _download(items.first);
@@ -619,7 +652,7 @@ class _BrowserScreenState extends State<BrowserScreen> {
     if (choice == null || !mounted) return;
     final token = await _freshToken();
     if (token == null) {
-      showErrorSnackBar(messenger, 'Cannot download: session expired. Sign in again.');
+      showErrorSnackBar(messenger, loc.errorSessionExpiredDownload);
       return;
     }
     final url = _client.rawBundleDownloadUri(_path, names, algo: 'zip');
@@ -631,13 +664,14 @@ class _BrowserScreenState extends State<BrowserScreen> {
       filename: '$base.zip',
       directory: choice.directory,
     );
-    messenger.showSnackBar(
-        SnackBar(content: Text('Downloading ${names.length} item(s) as zip…')));
+    messenger.showSnackBar(SnackBar(
+        content: Text(loc.browserDownloadingCountZip(names.length))));
   }
 
   Future<void> _moveOrCopySelected(TransferOp op) async {
     final items = _selectedResources();
     if (items.isEmpty) return;
+    final loc = _loc;
     final movingDirs = op == TransferOp.move
         ? items.where((e) => e.isDir).map((e) => e.path).toSet()
         : const <String>{};
@@ -645,8 +679,9 @@ class _BrowserScreenState extends State<BrowserScreen> {
       MaterialPageRoute(
         builder: (_) => DestinationPicker(
           client: _client,
-          title: op == TransferOp.move ? 'Move to' : 'Copy to',
-          confirmLabel: op == TransferOp.move ? 'Move here' : 'Copy here',
+          title: op == TransferOp.move ? loc.browserMoveTo : loc.browserCopyTo,
+          confirmLabel:
+              op == TransferOp.move ? loc.browserMoveHere : loc.browserCopyHere,
           initialPath: _path,
           canCreate: context.read<AuthController>().user?.canCreate ?? false,
           movingPaths: movingDirs,
@@ -662,26 +697,37 @@ class _BrowserScreenState extends State<BrowserScreen> {
       items: items,
       destDir: dest,
       onConflict: _resolveConflict,
+      moveIntoSelfError: loc.batchMoveIntoSelfError,
     );
     _selection.exit();
     _open(_path);
-    final verb = op == TransferOp.move ? 'Moved' : 'Copied';
+    final verb =
+        op == TransferOp.move ? loc.browserVerbMoved : loc.browserVerbCopied;
     if (result.failures.isNotEmpty) {
       showErrorSnackBar(
           messenger,
-          '$verb ${result.succeeded}, skipped ${result.skipped}; '
-          '${result.failures.length} failed:\n'
-          '${result.failures.map((f) => '${f.item.name}: ${f.error}').join('\n')}');
+          loc.browserBatchFailedSummary(
+              verb,
+              result.succeeded,
+              result.skipped,
+              result.failures.length,
+              result.failures
+                  .map((f) => '${f.item.name}: ${f.error}')
+                  .join('\n')));
     } else if (result.aborted) {
       // The user cancelled a mid-batch conflict prompt; the remainder was never
       // attempted, so spell out that it didn't complete.
       messenger.showSnackBar(SnackBar(
-          content: Text('Cancelled; $verb ${result.succeeded}, '
-              'skipped ${result.skipped}')));
+          content: Text(loc.browserBatchCancelledSummary(
+              verb, result.succeeded, result.skipped))));
     } else {
       messenger.showSnackBar(SnackBar(
-          content: Text('$verb ${result.succeeded} item(s)'
-              '${result.skipped > 0 ? ', skipped ${result.skipped}' : ''}')));
+          content: Text(loc.browserBatchDoneSummary(
+              verb,
+              result.succeeded,
+              result.skipped > 0
+                  ? loc.browserSkippedSuffix(result.skipped)
+                  : ''))));
     }
   }
 
@@ -691,38 +737,39 @@ class _BrowserScreenState extends State<BrowserScreen> {
   Future<ConflictChoice?> _resolveConflict(
       FbResource item, String targetPath) async {
     if (_bulkConflictChoice != null) return _bulkConflictChoice;
+    final loc = _loc;
     var applyAll = false;
     final choice = await showDialog<ConflictChoice>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setLocal) => AlertDialog(
-          title: const Text('Already exists'),
+          title: Text(loc.conflictTitle),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('"${item.name}" already exists in the destination.'),
+              Text(loc.conflictBody(item.name)),
               CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
                 value: applyAll,
                 onChanged: (v) => setLocal(() => applyAll = v ?? false),
-                title: const Text('Apply to all remaining'),
+                title: Text(loc.conflictApplyToAll),
               ),
             ],
           ),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel')),
+                child: Text(loc.actionCancel)),
             TextButton(
                 onPressed: () => Navigator.pop(ctx, ConflictChoice.skip),
-                child: const Text('Skip')),
+                child: Text(loc.actionSkip)),
             TextButton(
                 onPressed: () => Navigator.pop(ctx, ConflictChoice.keepBoth),
-                child: const Text('Keep both')),
+                child: Text(loc.actionKeepBoth)),
             FilledButton(
                 onPressed: () => Navigator.pop(ctx, ConflictChoice.overwrite),
-                child: const Text('Overwrite')),
+                child: Text(loc.actionOverwrite)),
           ],
         ),
       ),
@@ -753,6 +800,7 @@ class _BrowserScreenState extends State<BrowserScreen> {
   /// or a SAF/content-URI directory walk. Verified path works for app-readable dirs.
   Future<void> _uploadFolder() async {
     final messenger = ScaffoldMessenger.of(context);
+    final loc = _loc;
     final dirPath = await FilePicker.getDirectoryPath();
     if (dirPath == null || !mounted) return;
     final folderName = p.basename(dirPath);
@@ -783,7 +831,7 @@ class _BrowserScreenState extends State<BrowserScreen> {
 
     final token = await _freshToken();
     if (token == null) {
-      showErrorSnackBar(messenger, 'Cannot upload: session expired. Sign in again.');
+      showErrorSnackBar(messenger, loc.errorSessionExpiredUpload);
       return;
     }
     var count = 0;
@@ -796,21 +844,23 @@ class _BrowserScreenState extends State<BrowserScreen> {
             _path == '/' ? '' : _path, effectiveFolder, p.split(rel).join('/'));
         final target = remote.startsWith('/') ? remote : '/$remote';
         await _transfers.upload(
-          uploadUrl: _client.uploadUri(target, override: override),
-          token: token,
+          client: _client,
+          remotePath: target,
           localFilePath: entity.path,
+          token: token,
+          override: override,
         );
         count++;
       }
     } catch (e) {
-      showErrorSnackBar(messenger, 'Folder upload failed: $e');
+      showErrorSnackBar(messenger, loc.browserFolderUploadFailed('$e'));
       return;
     }
     if (!mounted) return;
     messenger.showSnackBar(SnackBar(
       content: Text(count == 0
-          ? 'No files found in "$folderName"'
-          : 'Uploading $count file(s) from "$effectiveFolder"…'),
+          ? loc.browserNoFilesFoundIn(folderName)
+          : loc.browserUploadingCountFrom(count, effectiveFolder)),
     ));
   }
 
@@ -833,6 +883,7 @@ class _BrowserScreenState extends State<BrowserScreen> {
       List<({String localPath, String name})> files, String destDir) async {
     if (files.isEmpty) return;
     final messenger = ScaffoldMessenger.of(context);
+    final loc = _loc;
 
     // Snapshot the destination's current names so conflicts can be detected and
     // keep-both variants generated purely. A listing failure degrades to "no
@@ -847,7 +898,7 @@ class _BrowserScreenState extends State<BrowserScreen> {
 
     final token = await _freshToken();
     if (token == null) {
-      showErrorSnackBar(messenger, 'Cannot upload: session expired. Sign in again.');
+      showErrorSnackBar(messenger, loc.errorSessionExpiredUpload);
       return;
     }
 
@@ -878,20 +929,22 @@ class _BrowserScreenState extends State<BrowserScreen> {
       taken.add(plan.name);
       final target = _childPath(destDir, plan.name);
       await _transfers.upload(
-        uploadUrl: _client.uploadUri(target,
-            override: plan.action == UploadAction.overwrite),
-        token: token,
+        client: _client,
+        remotePath: target,
         localFilePath: f.localPath,
+        token: token,
+        override: plan.action == UploadAction.overwrite,
       );
       uploaded++;
     }
     if (!mounted) return;
     final parts = [
-      if (uploaded > 0) 'Uploading $uploaded file(s)…',
-      if (skipped > 0) 'skipped $skipped',
+      if (uploaded > 0) loc.browserUploadingCount(uploaded),
+      if (skipped > 0) loc.browserSkippedCount(skipped),
     ];
     messenger.showSnackBar(SnackBar(
-        content: Text(parts.isEmpty ? 'Nothing to upload' : parts.join(', '))));
+        content: Text(
+            parts.isEmpty ? loc.browserNothingToUpload : parts.join(', '))));
   }
 
   /// Joins a child [name] onto a `/`-rooted [dir], yielding an absolute target.
@@ -906,38 +959,39 @@ class _BrowserScreenState extends State<BrowserScreen> {
   /// [_resolveConflict] dialog.
   Future<({ConflictChoice choice, bool applyAll})?> _promptUploadConflict(
       String name) async {
+    final loc = _loc;
     var applyAll = false;
     final choice = await showDialog<ConflictChoice>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setLocal) => AlertDialog(
-          title: const Text('Already exists'),
+          title: Text(loc.conflictTitle),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('"$name" already exists in the destination.'),
+              Text(loc.conflictBody(name)),
               CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
                 value: applyAll,
                 onChanged: (v) => setLocal(() => applyAll = v ?? false),
-                title: const Text('Apply to all remaining'),
+                title: Text(loc.conflictApplyToAll),
               ),
             ],
           ),
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel')),
+                child: Text(loc.actionCancel)),
             TextButton(
                 onPressed: () => Navigator.pop(ctx, ConflictChoice.skip),
-                child: const Text('Skip')),
+                child: Text(loc.actionSkip)),
             TextButton(
                 onPressed: () => Navigator.pop(ctx, ConflictChoice.keepBoth),
-                child: const Text('Keep both')),
+                child: Text(loc.actionKeepBoth)),
             FilledButton(
                 onPressed: () => Navigator.pop(ctx, ConflictChoice.overwrite),
-                child: const Text('Overwrite')),
+                child: Text(loc.actionOverwrite)),
           ],
         ),
       ),
@@ -964,7 +1018,7 @@ class _BrowserScreenState extends State<BrowserScreen> {
       // rather than the app silently coming forward and doing nothing.
       if (shared.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Only files can be uploaded')));
+            SnackBar(content: Text(_loc.browserOnlyFilesUpload)));
       }
       return;
     }
@@ -974,8 +1028,8 @@ class _BrowserScreenState extends State<BrowserScreen> {
         MaterialPageRoute(
           builder: (_) => DestinationPicker(
             client: _client,
-            title: 'Upload ${pending.length} file(s) to',
-            confirmLabel: 'Upload here',
+            title: _loc.browserUploadCountTo(pending.length),
+            confirmLabel: _loc.browserUploadHere,
             initialPath: _path,
             canCreate: context.read<AuthController>().user?.canCreate ?? false,
           ),
@@ -991,22 +1045,25 @@ class _BrowserScreenState extends State<BrowserScreen> {
   }
 
   Future<void> _newFolder() async {
+    final loc = _loc;
     final controller = TextEditingController();
     final name = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('New folder'),
+        title: Text(loc.browserNewFolder),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(labelText: 'Folder name'),
+          decoration: InputDecoration(labelText: loc.browserFolderNameLabel),
           onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(loc.actionCancel)),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: const Text('Create'),
+            child: Text(loc.actionCreate),
           ),
         ],
       ),
@@ -1020,11 +1077,12 @@ class _BrowserScreenState extends State<BrowserScreen> {
       await _client.makeDirectory(target);
       _open(_path);
     } catch (e) {
-      showErrorSnackBar(messenger, 'Could not create folder: $e');
+      showErrorSnackBar(messenger, loc.browserCouldNotCreateFolder('$e'));
     }
   }
 
   Future<void> _showCreateMenu() async {
+    final loc = _loc;
     await showModalBottomSheet<void>(
       context: context,
       builder: (sheetCtx) => SafeArea(
@@ -1033,8 +1091,8 @@ class _BrowserScreenState extends State<BrowserScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.upload_file),
-              title: const Text('Upload files'),
-              subtitle: const Text('Select one or more files'),
+              title: Text(loc.browserUploadFiles),
+              subtitle: Text(loc.browserUploadFilesSubtitle),
               onTap: () {
                 Navigator.pop(sheetCtx);
                 _upload();
@@ -1042,8 +1100,8 @@ class _BrowserScreenState extends State<BrowserScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.drive_folder_upload_outlined),
-              title: const Text('Upload folder'),
-              subtitle: const Text('Uploads the folder and its contents'),
+              title: Text(loc.browserUploadFolder),
+              subtitle: Text(loc.browserUploadFolderSubtitle),
               onTap: () {
                 Navigator.pop(sheetCtx);
                 _uploadFolder();
@@ -1051,7 +1109,7 @@ class _BrowserScreenState extends State<BrowserScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.create_new_folder_outlined),
-              title: const Text('New folder'),
+              title: Text(loc.browserNewFolder),
               onTap: () {
                 Navigator.pop(sheetCtx);
                 _newFolder();
@@ -1122,7 +1180,7 @@ class _BrowserScreenState extends State<BrowserScreen> {
             ? null
             : FloatingActionButton(
                 onPressed: _showCreateMenu,
-                tooltip: 'Create',
+                tooltip: _loc.actionCreate,
                 child: const Icon(Icons.add),
               ),
       ),
@@ -1130,29 +1188,37 @@ class _BrowserScreenState extends State<BrowserScreen> {
   }
 
   AppBar _browseAppBar(BuildContext context, FbUser? user) {
+    final loc = _loc;
     return AppBar(
       title: Breadcrumbs(path: _path, onTap: _open),
       leading: _path == '/'
           ? null
-          : IconButton(icon: const Icon(Icons.arrow_back), onPressed: _goUp),
+          : IconButton(
+              icon: const Icon(Icons.arrow_back),
+              tooltip: loc.browserUpTooltip,
+              onPressed: _goUp),
       actions: [
         IconButton(
             icon: const Icon(Icons.search),
-            tooltip: 'Search',
+            tooltip: loc.browserSearchTooltip,
             onPressed: _openSearch),
         _transfersAction(context),
         PopupMenuButton<SortKey>(
           icon: const Icon(Icons.sort),
-          tooltip: 'Sort',
+          tooltip: loc.browserSortTooltip,
           onSelected: _applySort,
           itemBuilder: (_) => [
-            _sortMenuItem(SortKey.name, 'Name'),
-            _sortMenuItem(SortKey.size, 'Size'),
-            _sortMenuItem(SortKey.modified, 'Date modified'),
+            _sortMenuItem(SortKey.name, loc.sortName),
+            _sortMenuItem(SortKey.size, loc.sortSize),
+            _sortMenuItem(SortKey.modified, loc.sortDateModified),
           ],
         ),
-        IconButton(icon: const Icon(Icons.refresh), onPressed: () => _open(_path)),
+        IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: loc.browserRefreshTooltip,
+            onPressed: () => _open(_path)),
         PopupMenuButton<String>(
+          tooltip: loc.browserMoreOptionsTooltip,
           onSelected: (v) {
             if (v == 'status') _openStatus();
             if (v == 'shares') _openShares();
@@ -1161,12 +1227,15 @@ class _BrowserScreenState extends State<BrowserScreen> {
             if (v == 'forget') context.read<AuthController>().signOut(forget: true);
           },
           itemBuilder: (_) => [
-            const PopupMenuItem(value: 'status', child: Text('Status')),
-            const PopupMenuItem(value: 'shares', child: Text('Shared links')),
-            const PopupMenuItem(
-                value: 'dlfolder', child: Text('Download folder')),
-            PopupMenuItem(value: 'lock', child: Text('Lock (${user?.username ?? ''})')),
-            const PopupMenuItem(value: 'forget', child: Text('Sign out & forget')),
+            PopupMenuItem(value: 'status', child: Text(loc.statusTitle)),
+            PopupMenuItem(value: 'shares', child: Text(loc.sharesTitle)),
+            PopupMenuItem(
+                value: 'dlfolder', child: Text(loc.browserMenuDownloadFolder)),
+            PopupMenuItem(
+                value: 'lock',
+                child: Text(loc.lockWithUser(user?.username ?? ''))),
+            PopupMenuItem(
+                value: 'forget', child: Text(loc.actionSignOutForget)),
           ],
         ),
       ],
@@ -1184,7 +1253,7 @@ class _BrowserScreenState extends State<BrowserScreen> {
         final count = activeTransferCount(snap.data ?? const []);
         final button = IconButton(
           icon: const Icon(Icons.swap_vert),
-          tooltip: 'Transfers',
+          tooltip: AppLocalizations.of(context).transfersTitle,
           onPressed: () => Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const TransfersScreen()),
           ),
@@ -1197,18 +1266,19 @@ class _BrowserScreenState extends State<BrowserScreen> {
 
   /// Contextual app bar shown in selection mode: count, select-all, clear.
   AppBar _selectionAppBar(BuildContext context) {
+    final loc = _loc;
     final total = _visibleItems.length;
     final allSelected = total > 0 && _selection.count >= total;
     return AppBar(
       leading: IconButton(
         icon: const Icon(Icons.close),
-        tooltip: 'Exit selection',
+        tooltip: loc.browserExitSelectionTooltip,
         onPressed: _selection.exit,
       ),
-      title: Text('${_selection.count} selected'),
+      title: Text(loc.browserSelectedCount(_selection.count)),
       actions: [
         IconButton(
-          tooltip: allSelected ? 'Deselect all' : 'Select all',
+          tooltip: allSelected ? loc.browserDeselectAll : loc.browserSelectAll,
           icon: Icon(allSelected ? Icons.deselect : Icons.select_all),
           onPressed: () => allSelected
               ? _selection.clear()
@@ -1224,6 +1294,7 @@ class _BrowserScreenState extends State<BrowserScreen> {
   /// tap routes to navigation/viewer rather than the per-item sheet), so it is
   /// enabled only when exactly one item is selected.
   Widget _selectionActionBar(BuildContext context, FbUser? user) {
+    final loc = _loc;
     final canModify = user?.canModify ?? false;
     final has = _selection.count > 0;
     final single = _selection.count == 1;
@@ -1231,16 +1302,16 @@ class _BrowserScreenState extends State<BrowserScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _barAction(Icons.download_outlined, 'Download',
+          _barAction(Icons.download_outlined, loc.actionDownload,
               has ? _downloadSelected : null),
-          _barAction(Icons.link, 'Share', single ? _shareSelected : null),
-          _barAction(Icons.drive_file_rename_outline, 'Rename',
+          _barAction(Icons.link, loc.actionShare, single ? _shareSelected : null),
+          _barAction(Icons.drive_file_rename_outline, loc.actionRename,
               single && canModify ? _renameSelected : null),
-          _barAction(Icons.drive_file_move_outlined, 'Move',
+          _barAction(Icons.drive_file_move_outlined, loc.actionMove,
               has && canModify ? () => _moveOrCopySelected(TransferOp.move) : null),
-          _barAction(Icons.copy_outlined, 'Copy',
+          _barAction(Icons.copy_outlined, loc.actionCopy,
               has && canModify ? () => _moveOrCopySelected(TransferOp.copy) : null),
-          _barAction(Icons.delete_outline, 'Delete',
+          _barAction(Icons.delete_outline, loc.actionDelete,
               has && canModify ? _deleteSelected : null),
         ],
       ),
@@ -1378,12 +1449,19 @@ class _GalleryTile extends StatelessWidget {
             errorWidget: (_, __, ___) => Container(
               color: surface,
               child: Icon(item.isVideo ? Icons.movie : Icons.broken_image,
-                  color: Colors.grey),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ),
           if (item.isVideo)
             const Center(
-              child: Icon(Icons.play_circle_fill, color: Colors.white70, size: 40),
+              // Dark scrim disc behind the glyph so it stays visible over
+              // light thumbnails.
+              child: DecoratedBox(
+                decoration:
+                    BoxDecoration(color: Colors.black38, shape: BoxShape.circle),
+                child:
+                    Icon(Icons.play_circle_fill, color: Colors.white, size: 40),
+              ),
             ),
         ],
       );
@@ -1395,11 +1473,18 @@ class _GalleryTile extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        InkWell(
-          onTap: onTap,
-          onLongPress: onLongPress,
-          child:
-              ClipRRect(borderRadius: BorderRadius.circular(6), child: content),
+        // Media tiles render only a thumbnail, so name the tap target for
+        // screen readers (labelled tiles carry their own text already).
+        Semantics(
+          label: item.isViewableMedia ? item.name : null,
+          button: true,
+          selected: selected,
+          child: InkWell(
+            onTap: onTap,
+            onLongPress: onLongPress,
+            child: ClipRRect(
+                borderRadius: BorderRadius.circular(6), child: content),
+          ),
         ),
         // Selected highlight: a translucent wash + border, non-interactive so
         // taps still reach the InkWell beneath.
@@ -1471,7 +1556,10 @@ class _EmptyView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      children: const [SizedBox(height: 120), Center(child: Text('This folder is empty'))],
+      children: [
+        const SizedBox(height: 120),
+        Center(child: Text(AppLocalizations.of(context).browserEmptyFolder)),
+      ],
     );
   }
 }

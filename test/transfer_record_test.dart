@@ -20,7 +20,7 @@ void main() {
     test('first status update seeds a record at 0 progress', () {
       final r = applyTaskUpdate(
           null, TaskStatusUpdate(_dl(), TaskStatus.enqueued));
-      expect(r.status, TaskStatus.enqueued);
+      expect(r.status, TransferStatus.enqueued);
       expect(r.progress, 0);
       expect(r.isActive, isTrue);
     });
@@ -28,7 +28,7 @@ void main() {
     test('progress update merges over the prior status', () {
       var r = applyTaskUpdate(null, TaskStatusUpdate(_dl(), TaskStatus.running));
       r = applyTaskUpdate(r, TaskProgressUpdate(_dl(), 0.42, 1000));
-      expect(r.status, TaskStatus.running); // preserved
+      expect(r.status, TransferStatus.running); // preserved
       expect(r.progress, closeTo(0.42, 1e-9));
       expect(r.expectedFileSize, 1000);
     });
@@ -36,7 +36,7 @@ void main() {
     test('status update preserves the last real progress', () {
       var r = applyTaskUpdate(null, TaskProgressUpdate(_dl(), 0.7, 2000));
       r = applyTaskUpdate(r, TaskStatusUpdate(_dl(), TaskStatus.paused));
-      expect(r.status, TaskStatus.paused);
+      expect(r.status, TransferStatus.paused);
       expect(r.progress, closeTo(0.7, 1e-9));
       expect(r.expectedFileSize, 2000);
     });
@@ -93,6 +93,64 @@ void main() {
       final canceled = applyTaskUpdate(
           null, TaskStatusUpdate(_dl(), TaskStatus.canceled));
       expect(canceled.canRetry, isTrue);
+    });
+  });
+
+  group('ChunkedUploadRecord action flags', () {
+    ChunkedUploadRecord rec(TransferStatus s, {double progress = 0.5}) =>
+        ChunkedUploadRecord(
+            id: 'c1',
+            filename: 'big.bin',
+            status: s,
+            progress: progress,
+            expectedFileSize: 100);
+
+    test('running: can pause and cancel, not resume/retry', () {
+      final r = rec(TransferStatus.running);
+      expect(r.isUpload, isTrue);
+      expect(r.canPause, isTrue);
+      expect(r.canCancel, isTrue);
+      expect(r.canResume, isFalse);
+      expect(r.canRetry, isFalse);
+    });
+
+    test('paused: can resume and cancel, still active', () {
+      final r = rec(TransferStatus.paused);
+      expect(r.canResume, isTrue);
+      expect(r.canPause, isFalse);
+      expect(r.canCancel, isTrue);
+      expect(r.isActive, isTrue);
+    });
+
+    test('retrying: active, no manual controls but cancel', () {
+      final r = rec(TransferStatus.retrying);
+      expect(r.isActive, isTrue);
+      expect(r.canPause, isFalse);
+      expect(r.canResume, isFalse);
+      expect(r.canCancel, isTrue);
+    });
+
+    test('failed/canceled: retryable, inactive', () {
+      for (final s in [TransferStatus.failed, TransferStatus.canceled]) {
+        final r = rec(s);
+        expect(r.canRetry, isTrue);
+        expect(r.isActive, isFalse);
+        expect(r.canCancel, isFalse);
+      }
+    });
+  });
+
+  group('transferStatusOf', () {
+    test('maps every background_downloader status', () {
+      expect(transferStatusOf(TaskStatus.enqueued), TransferStatus.enqueued);
+      expect(transferStatusOf(TaskStatus.running), TransferStatus.running);
+      expect(transferStatusOf(TaskStatus.paused), TransferStatus.paused);
+      expect(transferStatusOf(TaskStatus.waitingToRetry),
+          TransferStatus.retrying);
+      expect(transferStatusOf(TaskStatus.complete), TransferStatus.complete);
+      expect(transferStatusOf(TaskStatus.failed), TransferStatus.failed);
+      expect(transferStatusOf(TaskStatus.notFound), TransferStatus.failed);
+      expect(transferStatusOf(TaskStatus.canceled), TransferStatus.canceled);
     });
   });
 

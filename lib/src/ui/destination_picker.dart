@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
+import '../../l10n/app_localizations.dart';
 import '../api/filebrowser_client.dart';
 import '../api/models.dart';
 import 'batch_ops.dart';
@@ -26,16 +27,21 @@ class DestinationPicker extends StatefulWidget {
   const DestinationPicker({
     super.key,
     required this.client,
-    this.title = 'Choose folder',
-    this.confirmLabel = 'Move here',
+    this.title,
+    this.confirmLabel,
     this.initialPath = '/',
     this.canCreate = true,
     this.movingPaths = const <String>{},
   });
 
   final FileBrowserClient client;
-  final String title;
-  final String confirmLabel;
+
+  /// Screen title; defaults to the localized "Choose folder".
+  final String? title;
+
+  /// Confirm button label; defaults to the localized "Move here".
+  final String? confirmLabel;
+
   final String initialPath;
 
   /// Whether to surface the 'New folder' action (gated on the user's create
@@ -74,23 +80,25 @@ class _DestinationPickerState extends State<DestinationPicker> {
       widget.movingPaths.any((src) => isMoveIntoSelfOrDescendant(src, dir));
 
   Future<void> _newFolder() async {
+    final loc = AppLocalizations.of(context);
     final controller = TextEditingController();
     final name = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('New folder'),
+        title: Text(loc.browserNewFolder),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(labelText: 'Folder name'),
+          decoration: InputDecoration(labelText: loc.browserFolderNameLabel),
           onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(loc.actionCancel)),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: const Text('Create'),
+            child: Text(loc.actionCreate),
           ),
         ],
       ),
@@ -104,16 +112,17 @@ class _DestinationPickerState extends State<DestinationPicker> {
       await widget.client.makeDirectory(target);
       _open(_path); // refresh; the new folder is now navigable
     } catch (e) {
-      showErrorSnackBar(messenger, 'Could not create folder: $e');
+      showErrorSnackBar(messenger, loc.browserCouldNotCreateFolder('$e'));
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     final canSelectHere = !_blocked(_path);
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title),
+        title: Text(widget.title ?? loc.destinationChooseFolder),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
           child: Align(
@@ -144,8 +153,8 @@ class _DestinationPickerState extends State<DestinationPicker> {
                 const SizedBox(height: 80),
                 Center(
                   child: Text(fileCount == 0
-                      ? 'No subfolders here'
-                      : 'No subfolders ($fileCount file(s) hidden)'),
+                      ? loc.destinationNoSubfolders
+                      : loc.destinationNoSubfoldersHidden(fileCount)),
                 ),
               ],
             );
@@ -180,7 +189,7 @@ class _DestinationPickerState extends State<DestinationPicker> {
                 OutlinedButton.icon(
                   onPressed: _newFolder,
                   icon: const Icon(Icons.create_new_folder_outlined),
-                  label: const Text('New folder'),
+                  label: Text(loc.browserNewFolder),
                 ),
               const Spacer(),
               FilledButton.icon(
@@ -188,7 +197,7 @@ class _DestinationPickerState extends State<DestinationPicker> {
                     ? () => Navigator.of(context).pop(_path)
                     : null,
                 icon: const Icon(Icons.check),
-                label: Text(widget.confirmLabel),
+                label: Text(widget.confirmLabel ?? loc.browserMoveHere),
               ),
             ],
           ),

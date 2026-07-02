@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../api/filebrowser_client.dart';
 import '../api/models.dart';
 import 'file_details_sheet.dart';
@@ -51,14 +52,15 @@ class _ImageGalleryScreenState extends State<ImageGalleryScreen> {
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         title: Text(
-          '${_index + 1} / ${widget.images.length}  ·  ${widget.images[_index].name}',
+          AppLocalizations.of(context).galleryTitle(
+              _index + 1, widget.images.length, widget.images[_index].name),
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(fontSize: 15),
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.info_outline),
-            tooltip: 'Details',
+            tooltip: AppLocalizations.of(context).actionDetails,
             onPressed: () => FileDetailsSheet.show(
               context,
               resource: widget.images[_index],

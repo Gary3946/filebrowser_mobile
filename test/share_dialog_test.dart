@@ -7,6 +7,7 @@ import 'package:filebrowser_mobile/src/api/filebrowser_client.dart';
 import 'package:filebrowser_mobile/src/api/models.dart';
 import 'package:filebrowser_mobile/src/ui/share_dialog.dart';
 
+import 'support/l10n.dart';
 import 'support/mock_adapter.dart';
 
 String _b64(Map<String, dynamic> m) =>
@@ -34,17 +35,15 @@ void main() {
 
   // Pumps a button that opens the create-share dialog for [item].
   Future<void> pumpHost(WidgetTester tester, FileBrowserClient client) async {
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: Builder(
-          builder: (context) => ElevatedButton(
-            onPressed: () =>
-                showCreateShareDialog(context, client: client, item: item),
-            child: const Text('open'),
-          ),
+    await tester.pumpWidget(l10nWrap(Scaffold(
+      body: Builder(
+        builder: (context) => ElevatedButton(
+          onPressed: () =>
+              showCreateShareDialog(context, client: client, item: item),
+          child: const Text('open'),
         ),
       ),
-    ));
+    )));
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
   }

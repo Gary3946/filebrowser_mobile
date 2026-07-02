@@ -260,9 +260,16 @@ void main() {
       expect(res(name: 'm.mp4').activation, ResourceActivation.playVideo);
     });
 
-    test('pdf/text/audio and unknown types open externally', () {
+    test('text-like files open the in-app text viewer', () {
+      expect(res(name: 'r.md').activation, ResourceActivation.viewText);
+      expect(res(name: 'n.txt').activation, ResourceActivation.viewText);
+      expect(res(name: 'c.json').activation, ResourceActivation.viewText);
+      expect(res(name: 'noext', type: 'text').activation,
+          ResourceActivation.viewText);
+    });
+
+    test('pdf/audio and unknown types open externally', () {
       expect(res(name: 'd.pdf').activation, ResourceActivation.openExternally);
-      expect(res(name: 'r.md').activation, ResourceActivation.openExternally);
       expect(res(name: 's.mp3').activation, ResourceActivation.openExternally);
       expect(res(name: 'x.bin').activation, ResourceActivation.openExternally);
     });

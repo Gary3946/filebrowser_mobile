@@ -7,7 +7,7 @@ enum SortKey { name, size, modified }
 /// open the in-app image/video viewer, or hand a non-media file off to a native
 /// Android app via open-with. Kept widget-free so the routing decision is pure
 /// and unit-testable (see [FbResource.activation]).
-enum ResourceActivation { openFolder, viewImage, playVideo, openExternally }
+enum ResourceActivation { openFolder, viewImage, playVideo, viewText, openExternally }
 
 /// Human-readable byte size, e.g. `512 B`, `1.5 KB`, `2.0 GB`.
 ///
@@ -188,14 +188,15 @@ class FbResource {
       (_textExts.contains(_ext) || type == 'text' || type == 'textImmutable');
   bool get isViewableMedia => isImage || isVideo;
 
-  /// How the browser should activate this resource when tapped. Media opens the
-  /// in-app viewer/player; every other file (pdf/text/audio and unknown types)
-  /// is handed to a native app via open-with. Mirrors [_handleTap]'s routing so
-  /// the decision can be unit-tested without the widget tree.
+  /// How the browser should activate this resource when tapped. Media and text
+  /// open the in-app viewer/player; every other file (pdf/audio and unknown
+  /// types) is handed to a native app via open-with. Mirrors [_handleTap]'s
+  /// routing so the decision can be unit-tested without the widget tree.
   ResourceActivation get activation {
     if (isDir) return ResourceActivation.openFolder;
     if (isImage) return ResourceActivation.viewImage;
     if (isVideo) return ResourceActivation.playVideo;
+    if (isText) return ResourceActivation.viewText;
     return ResourceActivation.openExternally;
   }
 

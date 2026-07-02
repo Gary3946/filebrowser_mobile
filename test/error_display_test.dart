@@ -3,13 +3,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:filebrowser_mobile/src/ui/error_display.dart';
 
+import 'support/l10n.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('errorSnackBar', () {
     test('carries the full message and a COPY action', () {
       const msg = 'Rename failed: Exception: boom';
-      final snack = errorSnackBar(msg);
+      final snack = errorSnackBar(l10nEn, msg);
       expect(snack.content, isA<Text>());
       expect((snack.content as Text).data, msg);
       expect(snack.action, isNotNull);
@@ -21,8 +23,8 @@ void main() {
     testWidgets('shows the snackbar with a COPY action', (tester) async {
       late ScaffoldMessengerState messenger;
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
+        l10nWrap(
+          Scaffold(
             body: Builder(builder: (context) {
               messenger = ScaffoldMessenger.of(context);
               return const SizedBox();
@@ -54,8 +56,8 @@ void main() {
 
       late ScaffoldMessengerState messenger;
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
+        l10nWrap(
+          Scaffold(
             body: Builder(builder: (context) {
               messenger = ScaffoldMessenger.of(context);
               return const SizedBox();
@@ -81,8 +83,8 @@ void main() {
         (tester) async {
       var retried = false;
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
+        l10nWrap(
+          Scaffold(
             body: CopyableErrorView(
               message: 'Boom: something broke',
               onRetry: () => retried = true,

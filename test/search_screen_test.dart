@@ -6,6 +6,7 @@ import 'package:filebrowser_mobile/src/api/filebrowser_client.dart';
 import 'package:filebrowser_mobile/src/api/models.dart';
 import 'package:filebrowser_mobile/src/ui/search_screen.dart';
 
+import 'support/l10n.dart';
 import 'support/mock_adapter.dart';
 
 String _b64(Map<String, dynamic> m) =>
@@ -92,9 +93,8 @@ void main() {
       ..adoptToken(_jwt(DateTime.now().millisecondsSinceEpoch ~/ 1000 + 3600));
 
     Future<void> pumpScreen(WidgetTester tester, FileBrowserClient client) {
-      return tester.pumpWidget(MaterialApp(
-        home: SearchScreen(client: client, root: '/'),
-      ));
+      return tester.pumpWidget(
+          l10nWrap(SearchScreen(client: client, root: '/')));
     }
 
     testWidgets('clear (X) affordance tracks live text without debounce lag',

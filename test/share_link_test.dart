@@ -7,6 +7,7 @@ import 'package:filebrowser_mobile/src/api/models.dart';
 import 'package:filebrowser_mobile/src/api/share_link.dart';
 import 'package:filebrowser_mobile/src/ui/shares_screen.dart';
 
+import 'support/l10n.dart';
 import 'support/mock_adapter.dart';
 
 String _b64(Map<String, dynamic> m) =>
@@ -162,7 +163,7 @@ void main() {
             },
           ]));
       await tester.pumpWidget(
-          MaterialApp(home: SharesScreen(client: client(adapter))));
+          l10nWrap(SharesScreen(client: client(adapter))));
       await tester.pumpAndSettle();
 
       expect(find.text('/photos/trip.jpg'), findsOneWidget);
@@ -181,7 +182,7 @@ void main() {
     testWidgets('empty list shows the empty state', (tester) async {
       final adapter = MockAdapter((_) => MockAdapter.json([]));
       await tester.pumpWidget(
-          MaterialApp(home: SharesScreen(client: client(adapter))));
+          l10nWrap(SharesScreen(client: client(adapter))));
       await tester.pumpAndSettle();
       expect(find.text('No shared links yet'), findsOneWidget);
     });
@@ -190,7 +191,7 @@ void main() {
         (tester) async {
       final adapter = MockAdapter((_) => MockAdapter.json({}, status: 500));
       await tester.pumpWidget(
-          MaterialApp(home: SharesScreen(client: client(adapter))));
+          l10nWrap(SharesScreen(client: client(adapter))));
       await tester.pumpAndSettle();
       expect(find.text('Retry'), findsOneWidget);
       expect(find.text('Copy'), findsOneWidget);

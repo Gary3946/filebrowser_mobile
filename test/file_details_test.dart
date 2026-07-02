@@ -6,6 +6,7 @@ import 'package:filebrowser_mobile/src/api/filebrowser_client.dart';
 import 'package:filebrowser_mobile/src/api/models.dart';
 import 'package:filebrowser_mobile/src/ui/file_details_sheet.dart';
 
+import 'support/l10n.dart';
 import 'support/mock_adapter.dart';
 
 String _b64(Map<String, dynamic> m) =>
@@ -17,12 +18,14 @@ String _jwt(int expEpoch) =>
 void main() {
   group('formatModified', () {
     test('formats to yyyy-MM-dd HH:mm with zero padding', () {
-      expect(formatModified(DateTime(2026, 6, 29, 14, 3)), '2026-06-29 14:03');
-      expect(formatModified(DateTime(2024, 1, 5, 9, 7)), '2024-01-05 09:07');
+      expect(formatModified(l10nEn, DateTime(2026, 6, 29, 14, 3)),
+          '2026-06-29 14:03');
+      expect(
+          formatModified(l10nEn, DateTime(2024, 1, 5, 9, 7)), '2024-01-05 09:07');
     });
 
     test('null timestamp -> Unknown', () {
-      expect(formatModified(null), 'Unknown');
+      expect(formatModified(l10nEn, null), 'Unknown');
     });
   });
 
@@ -61,11 +64,9 @@ void main() {
       extension: '.pdf',
     );
 
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: FileDetailsSheet(resource: resource, client: client),
-      ),
-    ));
+    await tester.pumpWidget(l10nWrap(Scaffold(
+      body: FileDetailsSheet(resource: resource, client: client),
+    )));
 
     // Nothing computed yet — the server must not be asked to hash the file.
     expect(checksumCalls, 0);
@@ -94,9 +95,8 @@ void main() {
     final dir = FbResource(
         path: '/docs', name: 'docs', size: 0, isDir: true);
 
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(body: FileDetailsSheet(resource: dir, client: client)),
-    ));
+    await tester.pumpWidget(
+        l10nWrap(Scaffold(body: FileDetailsSheet(resource: dir, client: client))));
 
     expect(find.text('Compute checksum (sha256)'), findsNothing);
     // No request should be issued merely by showing details.

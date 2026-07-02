@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
+import '../../l10n/app_localizations.dart';
 import '../api/filebrowser_client.dart';
 import '../api/models.dart';
 import 'error_display.dart';
@@ -155,7 +156,10 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final rootLabel = widget.root == '/' ? 'Files' : p.posix.basename(widget.root);
+    final loc = AppLocalizations.of(context);
+    final rootLabel = widget.root == '/'
+        ? loc.breadcrumbsRoot
+        : p.posix.basename(widget.root);
     return Scaffold(
       appBar: AppBar(
         title: TextField(
@@ -164,11 +168,12 @@ class _SearchScreenState extends State<SearchScreen> {
           textInputAction: TextInputAction.search,
           decoration: InputDecoration(
             border: InputBorder.none,
-            hintText: 'Search in $rootLabel…',
+            hintText: loc.searchHint(rootLabel),
             suffixIcon: _liveText.isEmpty
                 ? null
                 : IconButton(
                     icon: const Icon(Icons.clear),
+                    tooltip: loc.searchClearTooltip,
                     onPressed: () {
                       _controller.clear();
                       _runNow('');
@@ -179,11 +184,11 @@ class _SearchScreenState extends State<SearchScreen> {
           onSubmitted: _runNow,
         ),
       ),
-      body: _body(),
+      body: _body(loc),
     );
   }
 
-  Widget _body() {
+  Widget _body(AppLocalizations loc) {
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -197,11 +202,11 @@ class _SearchScreenState extends State<SearchScreen> {
       return _Hint(
           icon: Icons.search,
           text: _query.isEmpty
-              ? 'Type to search this folder'
-              : 'Keep typing (at least $_minQueryLen characters)');
+              ? loc.searchTypeToSearch
+              : loc.searchKeepTyping(_minQueryLen));
     }
     if (_results.isEmpty) {
-      return _Hint(icon: Icons.search_off, text: 'No results for "$_query"');
+      return _Hint(icon: Icons.search_off, text: loc.searchNoResults(_query));
     }
     return ListView.separated(
       itemCount: _results.length,
@@ -265,13 +270,18 @@ class _ResultTile extends StatelessWidget {
                           ? Icons.movie
                           : Icons.broken_image,
                       size: 20,
-                      color: Colors.grey),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ),
               if (kind == SearchTargetKind.video)
                 const Center(
-                  child: Icon(Icons.play_circle_fill,
-                      color: Colors.white70, size: 20),
+                  // Dark scrim disc keeps the glyph visible over light frames.
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                        color: Colors.black38, shape: BoxShape.circle),
+                    child: Icon(Icons.play_circle_fill,
+                        color: Colors.white, size: 20),
+                  ),
                 ),
             ],
           ),
