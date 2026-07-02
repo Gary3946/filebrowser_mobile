@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Enforce TLS for all traffic: cleartext (http://) is denied app-wide.
+     The app talks only to the user's own https:// File Browser server. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

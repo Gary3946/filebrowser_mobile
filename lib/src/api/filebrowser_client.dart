@@ -31,7 +31,12 @@ class SessionExpiredException implements Exception {
 class FileBrowserClient {
   FileBrowserClient({required String baseUrl, HttpClientAdapter? adapter})
       : _baseUrl = _normalizeBase(baseUrl),
-        _dio = Dio() {
+        // Do not follow redirects: the underlying HttpClient re-sends the
+        // Authorization/X-Password headers to the redirect target, so an
+        // open-redirect or hostile proxy could siphon the token to another
+        // origin. The quantum API is same-origin and needs no redirects; a 3xx
+        // surfaces as a response the callers treat as a failure.
+        _dio = Dio(BaseOptions(followRedirects: false, maxRedirects: 0)) {
     if (adapter != null) _dio.httpClientAdapter = adapter;
     _dio.interceptors.add(
       InterceptorsWrapper(
@@ -98,11 +103,23 @@ class FileBrowserClient {
 
   static String _normalizeBase(String url) {
     var u = url.trim();
-    if (!u.startsWith('http://') && !u.startsWith('https://')) {
+    // Enforce TLS: an explicit http:// base is rejected (credentials and the
+    // JWT travel in headers and must never go out in cleartext); a schemeless
+    // host defaults to https://.
+    if (u.startsWith('http://')) {
+      throw ArgumentError(
+          'Insecure http:// server URLs are not allowed — use https://.');
+    }
+    if (!u.startsWith('https://')) {
       u = 'https://$u';
     }
     return u.endsWith('/') ? u.substring(0, u.length - 1) : u;
   }
+
+  /// Whether [url] is an acceptable server URL (https:// or schemeless, never
+  /// http://). Used by the login form to reject cleartext before setup.
+  static bool isAllowedBaseUrl(String url) =>
+      !url.trim().toLowerCase().startsWith('http://');
 
   /// Builds `<base>/api/<segment>` (no trailing slash).
   Uri _endpoint(String segment) => Uri.parse('$_baseUrl/api/$segment');

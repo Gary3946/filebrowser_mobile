@@ -35,13 +35,20 @@ class AuthController extends ChangeNotifier {
     required PreferencesStore prefs,
     SecureStore? store,
     LocalAuthentication? localAuth,
+    Future<void> Function()? onForget,
   })  : _prefs = prefs,
         _store = store ?? SecureStore(),
-        _localAuth = localAuth ?? LocalAuthentication();
+        _localAuth = localAuth ?? LocalAuthentication(),
+        _onForget = onForget;
 
   final PreferencesStore _prefs;
   final SecureStore _store;
   final LocalAuthentication _localAuth;
+
+  /// Invoked on "sign out & forget" so dependent services (e.g. the transfer
+  /// service's persisted task database, which caches auth headers) can wipe
+  /// any session state they hold outside secure storage.
+  final Future<void> Function()? _onForget;
 
   AuthStage _stage = AuthStage.busy;
   AuthStage get stage => _stage;
@@ -74,7 +81,13 @@ class AuthController extends ChangeNotifier {
     required String password,
   }) async {
     _setStage(AuthStage.busy);
-    final normalized = FileBrowserClient(baseUrl: baseUrl).baseUrl;
+    final String normalized;
+    try {
+      normalized = FileBrowserClient(baseUrl: baseUrl).baseUrl;
+    } catch (e) {
+      _fail('Invalid server URL: ${_friendly(e)}', AuthStage.needsSetup);
+      return;
+    }
     await _store.save(baseUrl: normalized, username: username, password: password);
     await _store.clearJwt();
     await _loginAndSelectSource(normalized, username, password,
@@ -136,6 +149,7 @@ class AuthController extends ChangeNotifier {
     if (forget) {
       await _store.clear();
       await _prefs.setSourceName(null);
+      await _onForget?.call();
     } else {
       await _store.clearJwt();
     }

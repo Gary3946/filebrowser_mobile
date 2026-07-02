@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../api/filebrowser_client.dart';
 import '../auth/auth_controller.dart';
 
 /// First-run setup: enter server URL + credentials. After a successful login
@@ -61,8 +62,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     keyboardType: TextInputType.url,
                     autocorrect: false,
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Required' : null,
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) return 'Required';
+                      if (!FileBrowserClient.isAllowedBaseUrl(v)) {
+                        return 'Use https:// — insecure http:// is not allowed';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 12),
                   TextFormField(

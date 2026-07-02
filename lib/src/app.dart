@@ -24,7 +24,10 @@ class FileBrowserApp extends StatelessWidget {
           dispose: (_, service) => service.dispose(),
         ),
         ChangeNotifierProvider<AuthController>(
-          create: (_) => AuthController(prefs: prefs)..bootstrap(),
+          create: (ctx) => AuthController(
+            prefs: prefs,
+            onForget: ctx.read<TransferService>().purgeAll,
+          )..bootstrap(),
         ),
       ],
       child: MaterialApp(

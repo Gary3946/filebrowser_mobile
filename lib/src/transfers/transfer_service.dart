@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:background_downloader/background_downloader.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import 'transfer_record.dart';
 
@@ -42,6 +44,10 @@ class TransferService {
   // A separate, untracked group for the short-lived open-with cache fetch, so
   // it neither shows up in the transfers list nor is persisted by trackTasks.
   static const _openGroup = 'filebrowser_open';
+  // Sub-directory of the temporary cache holding open-with downloads. Isolating
+  // them in their own dir lets us purge only our files (see [_purgeOpenCache]),
+  // never other plugins' temp data.
+  static const _openDir = 'open_with';
 
   final Map<String, TransferRecord> _records = {};
   final StreamController<List<TransferRecord>> _recordsController =
@@ -66,6 +72,10 @@ class TransferService {
     _updatesSub = FileDownloader().updates.listen(_ingest);
     // Persist task records so progress/state survives process death.
     await FileDownloader().trackTasks();
+    // Open-with cache files handed to other apps are never individually
+    // deleted (the receiving app may still be reading them). Purge last
+    // session's leftovers on startup so they can't accumulate unbounded.
+    await _purgeOpenCache();
   }
 
   void _ingest(TaskUpdate update) {
@@ -140,7 +150,9 @@ class TransferService {
   }) async {
     final task = DownloadTask(
       url: downloadUrl.toString(),
-      filename: filename,
+      // Strip any path segments from the server-supplied name so a hostile
+      // server can't steer the write outside the target dir via `../`.
+      filename: p.basename(filename),
       baseDirectory: BaseDirectory.applicationDocuments,
       headers: {'Authorization': 'Bearer $token'},
       group: _group,
@@ -167,9 +179,10 @@ class TransferService {
   }) async {
     final task = DownloadTask(
       url: downloadUrl.toString(),
-      filename: filename,
+      filename: p.basename(filename),
       headers: {'Authorization': 'Bearer $token'},
       baseDirectory: BaseDirectory.temporary,
+      directory: _openDir,
       group: _openGroup,
       updates: Updates.status,
       retries: 1,
@@ -243,6 +256,32 @@ class TransferService {
   void clearFinished() {
     _records.removeWhere((_, r) => !r.isActive);
     _emit();
+  }
+
+  /// Wipe all transfer state — for "sign out & forget". Cancels every active
+  /// task in both groups, deletes the persisted task-record database (whose
+  /// records carry `Authorization: Bearer` headers), clears the in-memory
+  /// view, and purges the open-with cache. After this no token or downloaded
+  /// byte from the old session remains on disk.
+  Future<void> purgeAll() async {
+    for (final group in const [_group, _openGroup]) {
+      await FileDownloader().reset(group: group);
+    }
+    await FileDownloader().database.deleteAllRecords();
+    _records.clear();
+    _emit();
+    await _purgeOpenCache();
+  }
+
+  /// Delete the open-with cache sub-directory and everything in it.
+  Future<void> _purgeOpenCache() async {
+    try {
+      final tmp = await getTemporaryDirectory();
+      final dir = Directory(p.join(tmp.path, _openDir));
+      if (dir.existsSync()) await dir.delete(recursive: true);
+    } catch (_) {
+      // Best-effort cleanup; a failure here is not user-visible.
+    }
   }
 
   /// Stream of raw progress/status updates (retained for back-compat).

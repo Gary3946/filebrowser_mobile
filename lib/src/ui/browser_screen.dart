@@ -757,8 +757,15 @@ class _BrowserScreenState extends State<BrowserScreen> {
     if (dirPath == null || !mounted) return;
     final folderName = p.basename(dirPath);
 
-    // Resolve a clash on the destination folder name before walking it.
-    final existing = _visibleItems.map((e) => e.name).toSet();
+    // Resolve a clash on the destination folder name before walking it. Use a
+    // fresh listing (not the possibly-stale on-screen snapshot) so the
+    // overwrite/keep-both decision reflects the server's current contents.
+    final existing = <String>{};
+    try {
+      final listing = await _client.listDirectory(_path);
+      existing.addAll(listing.items.map((e) => e.name));
+    } catch (_) {/* best-effort: unknown names fall through to override=false */}
+    if (!mounted) return;
     var effectiveFolder = folderName;
     var override = false;
     if (existing.contains(folderName)) {
