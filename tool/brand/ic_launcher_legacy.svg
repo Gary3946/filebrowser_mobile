@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="72" height="72" viewBox="18 18 72 72">
+  <!-- Legacy (pre-API-26) launcher icon: adaptive layers composited, cropped to
+       the center 72dp square (the region launcher masks keep), rounded corners. -->
+  <defs>
+    <clipPath id="r"><rect x="18" y="18" width="72" height="72" rx="12"/></clipPath>
+  </defs>
+  <g clip-path="url(#r)">
+    <image xlink:href="ic_launcher_background.svg" width="108" height="108"/>
+    <image xlink:href="ic_launcher_foreground.svg" width="108" height="108"/>
+  </g>
+</svg>

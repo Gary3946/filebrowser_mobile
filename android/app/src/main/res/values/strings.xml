@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Launcher label shown under the app icon. Kept short (<= ~13 chars) so
+         it doesn't truncate on the home screen. -->
+    <string name="app_name">Quantum Files</string>
+
+    <!-- Full product title for store listings / About screens. -->
+    <string name="app_title">FileBrowser Quantum</string>
+</resources>
