@@ -1134,11 +1134,18 @@ class _BrowserScreenState extends State<BrowserScreen> {
     final user = context.read<AuthController>().user;
     final selecting = _selection.active;
     return PopScope(
-      // While selecting, the system/app back gesture exits selection mode
-      // instead of leaving the screen.
-      canPop: !selecting,
+      // The system/app back gesture is intercepted while there is in-app state
+      // to unwind: selection mode exits first, then back walks up one
+      // directory at a time. Only at the root (with no selection) does back
+      // reach the OS and leave the app.
+      canPop: !selecting && _path == '/',
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _selection.exit();
+        if (didPop) return;
+        if (selecting) {
+          _selection.exit();
+        } else {
+          _goUp();
+        }
       },
       child: Scaffold(
         appBar: selecting
