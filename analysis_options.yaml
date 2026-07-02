@@ -24,3 +24,8 @@ linter:
     # Resource discipline for the stream controllers / subscriptions.
     cancel_subscriptions: true
     close_sinks: true
+    # flutter_lints 5 dropped these from the default set; keep the const
+    # nudging the codebase was written against.
+    prefer_const_constructors: true
+    prefer_const_declarations: true
+    prefer_const_literals_to_create_immutables: true

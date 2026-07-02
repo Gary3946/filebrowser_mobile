@@ -7,10 +7,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// biometric unlock can always mint a fresh token via `/api/auth/login`.
 class SecureStore {
   SecureStore([FlutterSecureStorage? storage])
-      : _storage = storage ??
-            const FlutterSecureStorage(
-              aOptions: AndroidOptions(encryptedSharedPreferences: true),
-            );
+      // Since v10 the Android backend encrypts with its own ciphers by default
+      // (Jetpack Security is deprecated); data written under v9's
+      // encryptedSharedPreferences option is migrated on first access.
+      : _storage = storage ?? const FlutterSecureStorage();
 
   final FlutterSecureStorage _storage;
 

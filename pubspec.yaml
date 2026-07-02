@@ -1,7 +1,7 @@
 name: filebrowser_mobile
 description: Android client for File Browser (self-hosted) with biometric login and background transfers.
 publish_to: "none"
-version: 0.2.0+2
+version: 0.3.0+3
 
 environment:
   sdk: ">=3.4.0 <4.0.0"
@@ -23,13 +23,13 @@ dependencies:
   chewie: ^1.8.0
 
   # Secure credential storage (Android Keystore / EncryptedSharedPreferences)
-  flutter_secure_storage: ^9.2.2
+  flutter_secure_storage: ^10.3.1
 
   # Biometric / device-credential authentication
   local_auth: ^2.3.0
 
   # Background upload/download with a native foreground service + notifications
-  background_downloader: ^8.5.0
+  background_downloader: ^9.5.5
 
   # Simple state management / DI
   provider: ^6.1.2
@@ -42,7 +42,7 @@ dependencies:
 
   # System share-sheet for the public share-link URL (text-only, so no
   # FileProvider / native file-sharing configuration is required).
-  share_plus: ^10.0.0
+  share_plus: ^12.0.2
 
   # Typed, non-secret UI preferences (sort order, …)
   shared_preferences: ^2.3.0
@@ -52,7 +52,7 @@ dependencies:
   receive_sharing_intent: ^1.9.0
 
 dev_dependencies:
-  flutter_lints: ^4.0.0
+  flutter_lints: ^6.0.0
   flutter_test:
     sdk: flutter
 

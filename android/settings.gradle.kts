@@ -19,10 +19,12 @@ pluginManagement {
 
 plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
-    // Pinned to AGP 8.x: AGP 9 enforces "Built-in Kotlin", which breaks plugins
-    // that still apply the Kotlin Gradle Plugin (background_downloader, file_picker).
-    id("com.android.application") version "8.11.1" apply false
-    id("org.jetbrains.kotlin.android") version "2.1.20" apply false
+    // AGP held at 8.13.x (not 9.x): AGP 9 enforces "Built-in Kotlin", which
+    // still breaks plugins that apply the Kotlin Gradle Plugin themselves
+    // (share_plus, flutter_secure_storage; see plus_plugins#3745 and
+    // flutter/flutter#187042). share_plus 12 requires AGP >= 8.12.1.
+    id("com.android.application") version "8.13.2" apply false
+    id("org.jetbrains.kotlin.android") version "2.4.0" apply false
 }
 
 include(":app")

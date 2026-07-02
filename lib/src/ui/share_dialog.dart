@@ -89,7 +89,7 @@ Future<void> showShareResultDialog(
         TextButton.icon(
           icon: const Icon(Icons.share_outlined, size: 18),
           label: Text(AppLocalizations.of(ctx).actionShare),
-          onPressed: () => Share.share(url),
+          onPressed: () => SharePlus.instance.share(ShareParams(text: url)),
         ),
         TextButton.icon(
           icon: const Icon(Icons.copy, size: 18),

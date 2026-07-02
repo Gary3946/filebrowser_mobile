@@ -173,7 +173,7 @@ class _ShareTile extends StatelessWidget {
                   content: Text(loc.shareLinkCopied),
                   duration: const Duration(seconds: 2)));
             case 'share':
-              Share.share(url);
+              SharePlus.instance.share(ShareParams(text: url));
             case 'open':
               showShareResultDialog(context, baseUrl: baseUrl, share: share);
             case 'delete':
