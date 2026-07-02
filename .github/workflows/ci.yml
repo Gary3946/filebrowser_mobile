@@ -25,7 +25,24 @@ jobs:
 
       - run: flutter pub get
       - run: flutter analyze
-      - run: flutter test --exclude-tags integration  # integration is skip-by-default too
+      - run: flutter test --exclude-tags integration --coverage  # integration is skip-by-default too
+
+      - name: Coverage summary
+        run: |
+          # lcov.info: LF = lines found, LH = lines hit, per source file.
+          awk -F: '
+            /^LF:/ { lf += $2 }
+            /^LH:/ { lh += $2 }
+            END {
+              if (lf == 0) { print "no coverage data"; exit 1 }
+              printf "line coverage: %.1f%% (%d/%d lines)\n", 100*lh/lf, lh, lf
+            }' coverage/lcov.info | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: lcov
+          path: coverage/lcov.info
 
   # End-to-end: run the integration-tagged API tests against a real quantum
   # server (the official v1.4.0-stable release).

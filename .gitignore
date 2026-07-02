@@ -22,8 +22,12 @@ android/key.properties
 .env
 *.env
 
-# Quantum test-server harness artifacts (binary, config, seed data, db)
+# Quantum test-server harness artifacts (binary, config, seed data, db).
+# Running the server with the repo root as cwd also drops its runtime state
+# (database.db, tmp/) there — never commit either.
 .quantum-test/
+/database.db
+/tmp/
 
 # Misc
 .DS_Store

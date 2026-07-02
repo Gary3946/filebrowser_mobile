@@ -1,0 +1,152 @@
+name: Release
+
+# Publish a signed release APK whenever the version in pubspec.yaml is bumped
+# on main. The release is keyed on the version *name* (the part before `+`):
+# if tag v<version> does not exist yet, the workflow builds the APK, creates
+# the tag, and publishes a GitHub Release with the APK attached. Bumping only
+# the build number (after `+`) does not create a release.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   ANDROID_KEYSTORE_BASE64    base64 of the release keystore (.jks):
+#                              `base64 -i upload-keystore.jks | pbcopy`
+#   ANDROID_KEYSTORE_PASSWORD  keystore password
+#   ANDROID_KEY_ALIAS          key alias
+#   ANDROID_KEY_PASSWORD       key password
+
+on:
+  push:
+    branches: [main]
+    paths: [pubspec.yaml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version from pubspec.yaml
+        id: version
+        run: |
+          full="$(sed -n 's/^version: *//p' pubspec.yaml | tr -d '[:space:]')"
+          if [ -z "$full" ]; then
+            echo "no version found in pubspec.yaml" >&2; exit 1
+          fi
+          name="${full%%+*}"
+          echo "full=$full"   >> "$GITHUB_OUTPUT"
+          echo "name=$name"   >> "$GITHUB_OUTPUT"
+          echo "tag=v$name"   >> "$GITHUB_OUTPUT"
+          echo "version: $full → tag v$name"
+
+      - name: Check whether tag already exists
+        id: exists
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/${{ steps.version.outputs.tag }}" >/dev/null; then
+            echo "released=true" >> "$GITHUB_OUTPUT"
+            echo "tag ${{ steps.version.outputs.tag }} already exists — nothing to do"
+          else
+            echo "released=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify signing secrets are configured
+        if: steps.exists.outputs.released == 'false'
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          missing=""
+          [ -z "$KEYSTORE_B64" ]      && missing="$missing ANDROID_KEYSTORE_BASE64"
+          [ -z "$KEYSTORE_PASSWORD" ] && missing="$missing ANDROID_KEYSTORE_PASSWORD"
+          [ -z "$KEY_ALIAS" ]         && missing="$missing ANDROID_KEY_ALIAS"
+          [ -z "$KEY_PASSWORD" ]      && missing="$missing ANDROID_KEY_PASSWORD"
+          if [ -n "$missing" ]; then
+            echo "Refusing to release: missing secrets:$missing" >&2
+            echo "Without them Gradle silently falls back to debug signing." >&2
+            exit 1
+          fi
+
+      - name: Materialize release keystore
+        if: steps.exists.outputs.released == 'false'
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          printf '%s' "$KEYSTORE_B64" | base64 -d > android/upload-keystore.jks
+          cat > android/key.properties <<EOF
+          storeFile=../upload-keystore.jks
+          storePassword=$KEYSTORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
+
+      - uses: subosito/flutter-action@v2
+        if: steps.exists.outputs.released == 'false'
+        with:
+          flutter-version: 3.44.4
+          channel: stable
+          cache: true
+
+      - name: Build signed release APK
+        if: steps.exists.outputs.released == 'false'
+        run: |
+          flutter pub get
+          flutter build apk --release
+          apk=build/app/outputs/flutter-apk/app-release.apk
+          cp "$apk" "filebrowser-mobile-${{ steps.version.outputs.tag }}.apk"
+
+      - name: Verify APK is release-signed
+        if: steps.exists.outputs.released == 'false'
+        run: |
+          # apksigner prints the signer cert; a debug-signed APK has CN=Android Debug.
+          "$ANDROID_HOME"/build-tools/*/apksigner verify --print-certs \
+            "filebrowser-mobile-${{ steps.version.outputs.tag }}.apk" | tee /tmp/certs.txt
+          if grep -q "CN=Android Debug" /tmp/certs.txt; then
+            echo "APK is debug-signed — refusing to publish" >&2
+            exit 1
+          fi
+
+      - name: Extract changelog section
+        if: steps.exists.outputs.released == 'false'
+        id: notes
+        run: |
+          # Pull the section for this version from CHANGELOG.md if present.
+          notes_file=/tmp/release-notes.md
+          if [ -f CHANGELOG.md ]; then
+            awk -v ver="${{ steps.version.outputs.name }}" '
+              $0 ~ "^## " {
+                if (found) exit
+                if (index($0, ver) > 0) { found=1; next }
+              }
+              found { print }
+            ' CHANGELOG.md > "$notes_file"
+          fi
+          if [ ! -s "$notes_file" ]; then
+            echo "Release ${{ steps.version.outputs.tag }}" > "$notes_file"
+          fi
+          echo "file=$notes_file" >> "$GITHUB_OUTPUT"
+
+      - name: Create tag and GitHub Release
+        if: steps.exists.outputs.released == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" \
+            "filebrowser-mobile-${{ steps.version.outputs.tag }}.apk" \
+            --target "$GITHUB_SHA" \
+            --title "${{ steps.version.outputs.tag }}" \
+            --notes-file "${{ steps.notes.outputs.file }}"
+
+      - name: Clean up keystore
+        if: always()
+        run: rm -f android/upload-keystore.jks android/key.properties

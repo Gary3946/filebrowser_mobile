@@ -21,7 +21,15 @@ CFG="$WORK/config.yaml"
 DATA="$WORK/fbdata"
 PORT="${FB_TEST_PORT:-8080}"
 REL="v1.4.0-stable"
-URL="https://github.com/gtsteffaniak/filebrowser/releases/download/$REL/linux-amd64-filebrowser"
+
+# Pick the release asset for this host (assets are named <os>-<arch>-filebrowser).
+os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+case "$(uname -m)" in
+  arm64|aarch64) arch="arm64" ;;
+  x86_64|amd64)  arch="amd64" ;;
+  *) echo "unsupported arch: $(uname -m)" >&2; exit 1 ;;
+esac
+URL="https://github.com/gtsteffaniak/filebrowser/releases/download/$REL/$os-$arch-filebrowser"
 
 setup() {
   mkdir -p "$WORK"

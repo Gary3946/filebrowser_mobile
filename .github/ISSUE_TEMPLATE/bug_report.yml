@@ -1,0 +1,36 @@
+name: Bug report
+description: Something broken or behaving unexpectedly
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, what happened instead?
+    validations:
+      required: true
+  - type: input
+    id: app-version
+    attributes:
+      label: App version
+      placeholder: e.g. 0.1.0 (Settings → Status, or the release tag)
+    validations:
+      required: true
+  - type: input
+    id: android-version
+    attributes:
+      label: Android version / device
+      placeholder: e.g. Android 15, Pixel 8
+    validations:
+      required: true
+  - type: input
+    id: server-version
+    attributes:
+      label: Filebrowser Quantum server version
+      placeholder: e.g. v1.4.0-stable
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error text / logs
+      description: The app shows copyable errors — paste them here.
+      render: text
