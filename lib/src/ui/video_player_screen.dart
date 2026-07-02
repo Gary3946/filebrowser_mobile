@@ -49,7 +49,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           VideoPlayerController.networkUrl(widget.url, httpHeaders: widget.headers);
       await video.initialize();
       if (!mounted) {
-        video.dispose();
+        await video.dispose();
         return;
       }
       setState(() {

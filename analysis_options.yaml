@@ -1,6 +1,26 @@
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  language:
+    # Catches unsound dynamic->typed casts (real bug class). The other strict
+    # modes (inference/raw-types) only flagged third-party generics (Dio,
+    # MaterialPageRoute) — noise, not defects — so they stay off.
+    strict-casts: true
+  errors:
+    # Leaking secrets or an unawaited transfer is a real defect here, not a hint.
+    avoid_print: error
+    unawaited_futures: error
+
 linter:
   rules:
     prefer_single_quotes: true
-    avoid_print: false
+    # Security: no stray print() — tokens/passwords must never hit logs.
+    avoid_print: true
+    # Fire-and-forget Futures must be explicit (this app uses unawaited()).
+    unawaited_futures: true
+    # Guard the untyped JSON boundary and BuildContext-across-await hazards.
+    avoid_dynamic_calls: true
+    use_build_context_synchronously: true
+    # Resource discipline for the stream controllers / subscriptions.
+    cancel_subscriptions: true
+    close_sinks: true

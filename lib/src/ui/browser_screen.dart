@@ -199,7 +199,7 @@ class _BrowserScreenState extends State<BrowserScreen> {
       switch (res.activation) {
         case ResourceActivation.openFolder: // a file's listing is never a dir
         case ResourceActivation.openExternally:
-          _showActions(res);
+          await _showActions(res);
         case ResourceActivation.viewImage:
           _openImage(res, [res]);
         case ResourceActivation.playVideo:
