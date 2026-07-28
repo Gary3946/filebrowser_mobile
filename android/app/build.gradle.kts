@@ -20,8 +20,8 @@ val keystoreProperties = Properties().apply {
 val hasReleaseSigning = keystorePropertiesFile.exists()
 
 android {
-    namespace = "com.eluve.filebrowser.filebrowser_mobile"
-    compileSdk = 36
+    namespace = "com.filebrowser_quantum_mobile"
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -30,8 +30,8 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.eluve.filebrowser.filebrowser_mobile"
+        // Must match the package name registered in Play Console — permanent once published.
+        applicationId = "com.filebrowser_quantum_mobile"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

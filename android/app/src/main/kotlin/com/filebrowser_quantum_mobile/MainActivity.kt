@@ -1,4 +1,4 @@
-package com.eluve.filebrowser.filebrowser_mobile
+package com.filebrowser_quantum_mobile
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 
