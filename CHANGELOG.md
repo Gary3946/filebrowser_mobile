@@ -5,6 +5,26 @@ All notable changes to this project are documented here. The release workflow
 version in `pubspec.yaml` is bumped on `main`, and uses the matching `## x.y.z`
 section of this file as the release notes.
 
+## 0.3.0
+
+- Sharing now offers two methods everywhere: **Share link** (public server
+  link, as before) and **Send file(s)** — local copies handed to the system
+  share sheet (WhatsApp, email, …). Available from the multiselect bar (any
+  number of files at once), the per-item action sheet, and the viewers.
+  Selections over 100 MiB ask for confirmation first, since sending downloads
+  the files to the device before the sheet opens.
+- The selection bar's share button now works for any selection size
+  (previously it required exactly one item).
+- The image gallery, video player, and text viewer gained the full item action
+  menu: share, download, open with, rename, delete. Deleting an image drops it
+  from the gallery in place; a rename or delete closes the now-stale viewer
+  and refreshes the browser behind it.
+- The per-item action sheet hides Rename/Delete for accounts without modify
+  permission (matching the selection bar), and the bottom sheets scroll on
+  short screens instead of overflowing.
+- Android back navigates up the folder tree instead of leaving the app.
+- Dependency and Android toolchain upgrades.
+
 ## 0.2.0
 
 - Localization scaffolding: all 177 user-facing strings extracted to ARB

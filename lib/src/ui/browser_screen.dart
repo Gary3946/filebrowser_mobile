@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:open_filex/open_filex.dart';
 import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
@@ -20,11 +19,10 @@ import 'batch_ops.dart';
 import 'breadcrumbs.dart';
 import 'destination_picker.dart';
 import 'error_display.dart';
-import 'file_details_sheet.dart';
 import 'image_gallery_screen.dart';
+import 'item_actions.dart';
 import 'search_screen.dart';
 import 'selection_controller.dart';
-import 'share_dialog.dart';
 import 'shares_screen.dart';
 import 'status_screen.dart';
 import 'text_viewer_screen.dart';
@@ -115,6 +113,17 @@ class _BrowserScreenState extends State<BrowserScreen> {
 
   FileBrowserClient get _client => context.read<AuthController>().client!;
   TransferService get _transfers => context.read<TransferService>();
+
+  /// Per-item flows (download / open-with / share / rename / delete), shared
+  /// with the viewer screens. Resolved on demand so it always reflects the
+  /// current session (see [ItemActions.client]).
+  ItemActions get _actions => ItemActions.of(context);
+
+  /// Invalidates the on-screen listing after a viewer/sheet reported a
+  /// server-side change (rename, delete, …).
+  void _refreshAfterChange() {
+    if (mounted) _open(_path);
+  }
 
   @override
   void initState() {
@@ -233,12 +242,6 @@ class _BrowserScreenState extends State<BrowserScreen> {
     ));
   }
 
-  /// Creates a public share link for [item] (single file or folder), surfacing
-  /// the resulting URL in a copyable / shareable dialog. Errors are copyable.
-  Future<void> _shareLink(FbResource item) async {
-    await showCreateShareDialog(context, client: _client, item: item);
-  }
-
   // --- item activation -------------------------------------------------------
   // Single tap/long-press funnels (the selection seam): when selection mode
   // lands, intercept here to toggle selection instead of activating the item.
@@ -276,7 +279,8 @@ class _BrowserScreenState extends State<BrowserScreen> {
       builder: (_) => TextViewerScreen(
         client: _client,
         resource: item,
-        onOpenExternally: () => _openWith(item),
+        actions: _actions,
+        onChanged: _refreshAfterChange,
       ),
     ));
   }
@@ -294,6 +298,8 @@ class _BrowserScreenState extends State<BrowserScreen> {
         client: _client,
         images: images,
         initialIndex: index,
+        actions: _actions,
+        onChanged: _refreshAfterChange,
       ),
     ));
   }
@@ -306,6 +312,8 @@ class _BrowserScreenState extends State<BrowserScreen> {
         title: item.name,
         resource: item,
         client: _client,
+        actions: _actions,
+        onChanged: _refreshAfterChange,
       ),
     ));
   }
@@ -324,182 +332,11 @@ class _BrowserScreenState extends State<BrowserScreen> {
 
   // --- secondary actions -----------------------------------------------------
 
+  /// The per-item action sheet ([ItemActions.showActionsSheet]); refreshes the
+  /// listing when the chosen action changed the server (rename/delete).
   Future<void> _showActions(FbResource item) async {
-    final loc = _loc;
-    await showModalBottomSheet<void>(
-      context: context,
-      builder: (sheetCtx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Icon(item.isDir ? Icons.folder : Icons.insert_drive_file),
-              title: Text(item.name, overflow: TextOverflow.ellipsis),
-              subtitle: item.isDir ? null : Text(formatBytes(item.size)),
-            ),
-            const Divider(height: 1),
-            if (!item.isDir)
-              ListTile(
-                leading: const Icon(Icons.open_in_new),
-                title: Text(loc.actionOpenWith),
-                onTap: () {
-                  Navigator.pop(sheetCtx);
-                  _openWith(item);
-                },
-              ),
-            ListTile(
-              leading: const Icon(Icons.download_outlined),
-              title: Text(
-                  item.isDir ? loc.browserDownloadAsZip : loc.actionDownload),
-              onTap: () {
-                Navigator.pop(sheetCtx);
-                _download(item);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.link),
-              title: Text(loc.browserShareLink),
-              onTap: () {
-                Navigator.pop(sheetCtx);
-                _shareLink(item);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.drive_file_rename_outline),
-              title: Text(loc.actionRename),
-              onTap: () {
-                Navigator.pop(sheetCtx);
-                _rename(item);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete_outline),
-              title: Text(loc.actionDelete),
-              onTap: () {
-                Navigator.pop(sheetCtx);
-                _delete(item);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.info_outline),
-              title: Text(loc.actionDetails),
-              onTap: () {
-                Navigator.pop(sheetCtx);
-                FileDetailsSheet.show(context, resource: item, client: _client);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _download(FbResource item) async {
-    final choice = await _chooseSaveLocation();
-    if (choice == null || !mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
-    final loc = _loc;
-    final token = await _freshToken();
-    if (token == null) {
-      showErrorSnackBar(messenger, loc.errorSessionExpiredDownload);
-      return;
-    }
-    final url = _client.rawDownloadUri(item.path, algo: item.isDir ? 'zip' : null);
-    await _transfers.download(
-      downloadUrl: url,
-      token: token,
-      filename: item.isDir ? '${item.name}.zip' : item.name,
-      directory: choice.directory,
-    );
-    messenger.showSnackBar(
-        SnackBar(content: Text(loc.browserDownloadingItem(item.name))));
-  }
-
-  /// Downloads [item] to the app cache and hands it to a native Android app via
-  /// open-with (product item 12). A no-app-available result — or any other
-  /// failure — is surfaced as a copyable snackbar.
-  Future<void> _openWith(FbResource item) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final loc = _loc;
-    final token = await _freshToken();
-    if (token == null) {
-      showErrorSnackBar(messenger, loc.errorSessionExpiredOpen);
-      return;
-    }
-    messenger.showSnackBar(
-        SnackBar(content: Text(loc.browserOpeningItem(item.name))));
-    try {
-      final path = await _transfers.downloadToCache(
-        downloadUrl: _client.rawDownloadUri(item.path),
-        token: token,
-        filename: item.name,
-      );
-      final result = await OpenFilex.open(path);
-      if (result.type == ResultType.done || !mounted) return;
-      showErrorSnackBar(
-        messenger,
-        result.type == ResultType.noAppToOpen
-            ? loc.browserNoAppToOpen(item.name)
-            : loc.browserCouldNotOpen(item.name, result.message),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      showErrorSnackBar(messenger, loc.browserCouldNotOpen(item.name, '$e'));
-    }
-  }
-
-  /// Asks where to save a download (product item 13). Shows the remembered
-  /// folder — or "App storage" when none is set — and a "Change folder…" button
-  /// that opens the SAF directory picker. A newly picked folder is held in local
-  /// dialog state only and persisted as the new default when the user confirms
-  /// with Download — tapping Cancel leaves the saved default untouched. Returns
-  /// the chosen absolute directory (a null `directory` means the app's private
-  /// storage), or null overall when the user cancels.
-  Future<({String? directory})?> _chooseSaveLocation() async {
-    final prefs = _prefs;
-    final loc = _loc;
-    var dir = prefs.downloadDir;
-    return showDialog<({String? directory})>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setLocal) => AlertDialog(
-          title: Text(loc.browserSaveDownloadTo),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(dir ?? loc.browserAppStorageDefault,
-                  style: const TextStyle(fontWeight: FontWeight.w500)),
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  icon: const Icon(Icons.folder_open),
-                  label: Text(loc.browserChangeFolder),
-                  onPressed: () async {
-                    final chosen = await FilePicker.getDirectoryPath();
-                    if (chosen == null) return;
-                    setLocal(() => dir = chosen);
-                  },
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(loc.actionCancel)),
-            FilledButton(
-                onPressed: () async {
-                  // Persist the (possibly changed) folder only on confirm.
-                  if (dir != prefs.downloadDir) await prefs.setDownloadDir(dir);
-                  if (ctx.mounted) Navigator.pop(ctx, (directory: dir));
-                },
-                child: Text(loc.actionDownload)),
-          ],
-        ),
-      ),
-    );
+    final changed = await _actions.showActionsSheet(context, item);
+    if (changed) _refreshAfterChange();
   }
 
   /// Lets the user pick/change the default download save-location from the
@@ -513,75 +350,6 @@ class _BrowserScreenState extends State<BrowserScreen> {
     await prefs.setDownloadDir(chosen);
     messenger.showSnackBar(
         SnackBar(content: Text(loc.browserDownloadsSaveTo(chosen))));
-  }
-
-  Future<void> _rename(FbResource item) async {
-    final loc = _loc;
-    final controller = TextEditingController(text: item.name);
-    final newName = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(loc.actionRename),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(labelText: loc.browserNewNameLabel),
-          onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(loc.actionCancel)),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: Text(loc.actionRename),
-          ),
-        ],
-      ),
-    );
-    if (newName == null || newName.isEmpty || newName == item.name) return;
-    if (!mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
-    final parent = p.posix.dirname(item.path);
-    final dest = p.posix.join(parent == '.' ? '/' : parent, newName);
-    try {
-      await _client.rename(item.path, dest);
-      _open(_path);
-    } catch (e) {
-      showErrorSnackBar(messenger, loc.browserRenameFailed('$e'));
-    }
-  }
-
-  Future<void> _delete(FbResource item) async {
-    final loc = _loc;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(loc.browserDeleteItemTitle(item.name)),
-        content: Text(item.isDir
-            ? loc.browserDeleteFolderWarning
-            : loc.browserDeleteFileWarning),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(loc.actionCancel)),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Theme.of(ctx).colorScheme.error),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(loc.actionDelete),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
-    if (!mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      await _client.delete(item.path);
-      _open(_path);
-    } catch (e) {
-      showErrorSnackBar(messenger, loc.browserDeleteFailed('$e'));
-    }
   }
 
   // --- batch (multiselect) actions -------------------------------------------
@@ -644,11 +412,11 @@ class _BrowserScreenState extends State<BrowserScreen> {
     final loc = _loc;
     if (items.length == 1 && !items.first.isDir) {
       _selection.exit();
-      await _download(items.first);
+      await _actions.download(context, items.first);
       return;
     }
     final names = items.map((e) => e.name).toList();
-    final choice = await _chooseSaveLocation();
+    final choice = await _actions.chooseSaveLocation(context);
     if (choice == null || !mounted) return;
     final token = await _freshToken();
     if (token == null) {
@@ -1311,7 +1079,8 @@ class _BrowserScreenState extends State<BrowserScreen> {
         children: [
           _barAction(Icons.download_outlined, loc.actionDownload,
               has ? _downloadSelected : null),
-          _barAction(Icons.link, loc.actionShare, single ? _shareSelected : null),
+          _barAction(
+              Icons.share_outlined, loc.actionShare, has ? _shareSelected : null),
           _barAction(Icons.drive_file_rename_outline, loc.actionRename,
               single && canModify ? _renameSelected : null),
           _barAction(Icons.drive_file_move_outlined, loc.actionMove,
@@ -1326,24 +1095,25 @@ class _BrowserScreenState extends State<BrowserScreen> {
   }
 
   /// Renames the lone selected item, then leaves selection mode. Reuses the
-  /// per-item [_rename] flow so folders and media (whose tile tap navigates or
-  /// opens a viewer) remain renameable from the selection bar.
+  /// per-item [ItemActions.rename] flow so folders and media (whose tile tap
+  /// navigates or opens a viewer) remain renameable from the selection bar.
   Future<void> _renameSelected() async {
     final items = _selectedResources();
     if (items.length != 1) return;
     final item = items.single;
     _selection.exit();
-    await _rename(item);
+    final changed = await _actions.rename(context, item);
+    if (changed) _refreshAfterChange();
   }
 
-  /// Shares the lone selected item, then leaves selection mode. Reuses the
-  /// per-item [_shareLink] flow so folders/media remain shareable from the bar.
+  /// Opens the share chooser (link vs. send copies) for the selection, then
+  /// leaves selection mode. Works for any number of items; the chooser itself
+  /// disables the methods that don't apply ([ItemActions.showShareChooser]).
   Future<void> _shareSelected() async {
     final items = _selectedResources();
-    if (items.length != 1) return;
-    final item = items.single;
+    if (items.isEmpty) return;
     _selection.exit();
-    await _shareLink(item);
+    await _actions.showShareChooser(context, items);
   }
 
   Widget _barAction(IconData icon, String label, VoidCallback? onPressed) {

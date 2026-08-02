@@ -40,8 +40,9 @@ dependencies:
   # Hand a downloaded file off to a native Android app (PDF/text/audio/…)
   open_filex: ^4.7.0
 
-  # System share-sheet for the public share-link URL (text-only, so no
-  # FileProvider / native file-sharing configuration is required).
+  # System share-sheet: share-link URLs as text, and "send a copy" of files
+  # fetched to the app cache (the plugin ships its own Android FileProvider,
+  # so no manifest configuration is required).
   share_plus: ^12.0.2
 
   # Typed, non-secret UI preferences (sort order, …)

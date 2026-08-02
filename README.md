@@ -36,11 +36,22 @@ uploads/downloads, share-into-app, and open-with hand-off.
   (md5/sha1/sha256/sha512) fetched only when requested.
 - **Status page** — server **disk usage** (real disk used vs. capacity),
   signed-in user, and server capabilities when available.
-- **Share links** — create/list/delete public share links, optional password and
-  expiry; the link is handed to the system share sheet (`share_plus`).
+- **Sharing** — every share surface (selection bar, per-item sheet, viewer
+  menus) offers two methods:
+  - **Share link** — create/list/delete public server share links, optional
+    password and expiry; the URL is handed to the system share sheet
+    (`share_plus`).
+  - **Send file(s)** — local copies passed to the system share sheet
+    (WhatsApp, email, …). Works for any number of files at once; the files are
+    fetched into the short-lived app cache first, with a confirmation above
+    100 MiB. Folders aren't sendable (they'd need a zip) — the option explains
+    why instead of disappearing.
 - **In-app media** — zoomable image gallery (`photo_view`,
   `cached_network_image`) and a video player (`video_player` + `chewie`),
   streaming from the resource download endpoint with a Bearer auth header.
+  Viewers (and the text viewer) carry the full per-item action menu — share,
+  download, open with, rename, delete — so nothing requires going back to the
+  grid.
 - **Transfers**
   - **Background uploads/downloads** that keep running when the app is
     backgrounded or closed, via a native foreground service with progress
@@ -119,6 +130,9 @@ lib/
       breadcrumbs.dart           # path breadcrumb bar
       selection_controller.dart  # multiselect state
       batch_ops.dart             # batch copy/move/delete/download
+      item_actions.dart          # shared per-item flows (download/open-with/
+                                 #   share/rename/delete) + viewer action menu
+      share_actions.dart         # pure share-method availability rules
       destination_picker.dart    # folder picker for copy/move
       search_screen.dart         # search within the source
       file_details_sheet.dart    # details + on-demand checksum
@@ -129,6 +143,7 @@ lib/
       transfers_screen.dart      # live upload/download progress
       image_gallery_screen.dart  # zoomable photo viewer
       video_player_screen.dart   # in-app video playback
+      text_viewer_screen.dart    # selectable monospace text preview
       error_display.dart         # copyable error view + retry
 ```
 
@@ -146,7 +161,7 @@ lib/
 | `provider`                | State management / DI                                 |
 | `file_picker`             | File picking + SAF directory targets                  |
 | `open_filex`              | Open-with hand-off to native apps                     |
-| `share_plus`              | System share sheet for share-link URLs                |
+| `share_plus`              | System share sheet: share-link URLs + sending file copies |
 | `shared_preferences`      | Typed non-secret UI preferences (sort order, source)  |
 | `receive_sharing_intent`  | Share-into-app (SEND / SEND_MULTIPLE)                 |
 | `path` / `path_provider`  | Path utilities + app directories                      |

@@ -7,13 +7,13 @@ import '../api/filebrowser_client.dart';
 import '../api/models.dart';
 import 'error_display.dart';
 import 'file_details_sheet.dart';
+import 'item_actions.dart';
 
 /// In-app viewer for text-like files (see [FbResource.isText]): fetches the
 /// whole file and renders it as selectable monospace text.
 ///
 /// The listed size gates the fetch — anything over [maxPreviewBytes] isn't
-/// downloaded at all; the screen offers the "Open with…" hand-off instead
-/// (via [onOpenExternally], which the browser wires to its open-with flow).
+/// downloaded at all; the screen offers the "Open with…" hand-off instead.
 /// Bytes that aren't valid UTF-8 are decoded leniently (U+FFFD replacement),
 /// so a mislabeled binary still renders something rather than crashing.
 class TextViewerScreen extends StatefulWidget {
@@ -21,15 +21,21 @@ class TextViewerScreen extends StatefulWidget {
     super.key,
     required this.client,
     required this.resource,
-    this.onOpenExternally,
+    this.actions,
+    this.onChanged,
   });
 
   final FileBrowserClient client;
   final FbResource resource;
 
-  /// Invoked when the user chooses "Open with…" (file too large, or from the
-  /// app bar); typically the browser's open-with hand-off.
-  final void Function()? onOpenExternally;
+  /// The shared per-item flows; when present the app bar carries the full
+  /// [ItemActionsMenu] (share / download / open-with / rename / delete) and
+  /// the too-large state offers the open-with hand-off.
+  final ItemActions? actions;
+
+  /// Invoked after a rename/delete here changed the server, so the screen
+  /// beneath (the browser) can refresh its listing.
+  final VoidCallback? onChanged;
 
   /// Preview cap: 1 MiB of text is already ~15k lines — beyond that native
   /// editors handle it better than a Flutter text span would.
@@ -41,6 +47,14 @@ class TextViewerScreen extends StatefulWidget {
 
 class _TextViewerScreenState extends State<TextViewerScreen> {
   late Future<String?> _content = _load();
+
+  /// The viewed file was renamed or deleted: this screen now shows stale
+  /// content, so notify the browser and close. Invoked after an async flow,
+  /// hence the mounted guard.
+  void _closeAfterChange() {
+    widget.onChanged?.call();
+    if (mounted) Navigator.of(context).pop();
+  }
 
   /// Null means "too large to preview" (never fetched).
   Future<String?> _load() async {
@@ -57,15 +71,6 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
       appBar: AppBar(
         title: Text(widget.resource.name, overflow: TextOverflow.ellipsis),
         actions: [
-          if (widget.onOpenExternally != null)
-            IconButton(
-              icon: const Icon(Icons.open_in_new),
-              tooltip: loc.actionOpenWith,
-              onPressed: () {
-                Navigator.of(context).pop();
-                widget.onOpenExternally!();
-              },
-            ),
           IconButton(
             icon: const Icon(Icons.info_outline),
             tooltip: loc.actionDetails,
@@ -75,6 +80,13 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
               client: widget.client,
             ),
           ),
+          if (widget.actions != null)
+            ItemActionsMenu(
+              actions: widget.actions!,
+              resource: widget.resource,
+              onRenamed: _closeAfterChange,
+              onDeleted: _closeAfterChange,
+            ),
         ],
       ),
       body: FutureBuilder<String?>(
@@ -125,13 +137,11 @@ class _TextViewerScreenState extends State<TextViewerScreen> {
               loc.textViewerTooLarge(formatBytes(widget.resource.size)),
               textAlign: TextAlign.center,
             ),
-            if (widget.onOpenExternally != null) ...[
+            if (widget.actions != null) ...[
               const SizedBox(height: 16),
               FilledButton.icon(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  widget.onOpenExternally!();
-                },
+                onPressed: () =>
+                    widget.actions!.openWith(context, widget.resource),
                 icon: const Icon(Icons.open_in_new),
                 label: Text(loc.actionOpenWith),
               ),

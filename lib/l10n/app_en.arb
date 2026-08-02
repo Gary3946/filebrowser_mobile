@@ -42,6 +42,8 @@
   "@actionKeepBoth": { "description": "Keep both files in a conflict prompt (auto-renames)" },
   "actionOverwrite": "Overwrite",
   "@actionOverwrite": { "description": "Overwrite the existing item in a conflict prompt" },
+  "actionContinue": "Continue",
+  "@actionContinue": { "description": "Generic confirm button to proceed after a warning" },
 
   "loginTitle": "Connect to File Browser",
   "@loginTitle": { "description": "Login screen app bar title" },
@@ -247,6 +249,8 @@
   "@errorSessionExpiredUpload": { "description": "Error when an upload cannot start because the session is gone" },
   "errorSessionExpiredRetry": "Cannot retry: session expired. Sign in again.",
   "@errorSessionExpiredRetry": { "description": "Error when a transfer retry cannot start because the session is gone" },
+  "errorSessionExpiredShare": "Cannot share: session expired. Sign in again.",
+  "@errorSessionExpiredShare": { "description": "Error when sending file copies cannot start because the session is gone" },
   "browserFolderUploadFailed": "Folder upload failed: {error}",
   "@browserFolderUploadFailed": {
     "description": "Error snackbar when a folder upload fails",
@@ -395,6 +399,36 @@
   "@shareDialogPositiveNumber": { "description": "Validation error for the expiry amount" },
   "shareDialogCreateLink": "Create link",
   "@shareDialogCreateLink": { "description": "Confirm button of the create-share dialog" },
+  "shareSendCopy": "{count, plural, =1{Send file} other{Send {count} files}}",
+  "@shareSendCopy": {
+    "description": "Share chooser option: send local copies via the system share sheet",
+    "placeholders": { "count": { "type": "num" } }
+  },
+  "shareSendCopySubtitle": "Share a copy through another app",
+  "@shareSendCopySubtitle": { "description": "Subtitle of the send-copy share option when available" },
+  "shareSendFoldersUnsupported": "Folders can't be sent as files",
+  "@shareSendFoldersUnsupported": { "description": "Subtitle of the send-copy share option when the selection contains a folder" },
+  "shareLinkSubtitle": "Create a public link on the server",
+  "@shareLinkSubtitle": { "description": "Subtitle of the share-link option when available" },
+  "shareLinkSelectOne": "Select a single item to share a link",
+  "@shareLinkSelectOne": { "description": "Subtitle of the share-link option when more than one item is selected" },
+  "sharePreparingCount": "{count, plural, =1{Preparing file…} other{Preparing {count} files…}}",
+  "@sharePreparingCount": {
+    "description": "Snackbar while items download to the device before the system share sheet opens",
+    "placeholders": { "count": { "type": "num" } }
+  },
+  "shareCouldNotSend": "Could not send: {error}",
+  "@shareCouldNotSend": {
+    "description": "Error snackbar when preparing/sending file copies fails",
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "shareLargeTitle": "Send large files?",
+  "@shareLargeTitle": { "description": "Confirmation title before downloading a large selection for sending" },
+  "shareLargeBody": "{size} will be downloaded to your device before sharing.",
+  "@shareLargeBody": {
+    "description": "Confirmation body before downloading a large selection for sending",
+    "placeholders": { "size": { "type": "String" } }
+  },
 
   "sharesTitle": "Shared links",
   "@sharesTitle": { "description": "Shares screen title and overflow menu item" },

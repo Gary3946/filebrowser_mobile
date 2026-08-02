@@ -69,6 +69,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionOverwrite => 'Overwrite';
 
   @override
+  String get actionContinue => 'Continue';
+
+  @override
   String get loginTitle => 'Connect to File Browser';
 
   @override
@@ -315,6 +318,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Cannot retry: session expired. Sign in again.';
 
   @override
+  String get errorSessionExpiredShare =>
+      'Cannot share: session expired. Sign in again.';
+
+  @override
   String browserFolderUploadFailed(String error) {
     return 'Folder upload failed: $error';
   }
@@ -487,6 +494,53 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shareDialogCreateLink => 'Create link';
+
+  @override
+  String shareSendCopy(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Send $count files',
+      one: 'Send file',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get shareSendCopySubtitle => 'Share a copy through another app';
+
+  @override
+  String get shareSendFoldersUnsupported => 'Folders can\'t be sent as files';
+
+  @override
+  String get shareLinkSubtitle => 'Create a public link on the server';
+
+  @override
+  String get shareLinkSelectOne => 'Select a single item to share a link';
+
+  @override
+  String sharePreparingCount(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Preparing $count files…',
+      one: 'Preparing file…',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String shareCouldNotSend(String error) {
+    return 'Could not send: $error';
+  }
+
+  @override
+  String get shareLargeTitle => 'Send large files?';
+
+  @override
+  String shareLargeBody(String size) {
+    return '$size will be downloaded to your device before sharing.';
+  }
 
   @override
   String get sharesTitle => 'Shared links';

@@ -7,6 +7,7 @@ import '../api/filebrowser_client.dart';
 import '../api/models.dart';
 import 'error_display.dart';
 import 'file_details_sheet.dart';
+import 'item_actions.dart';
 
 /// Streams a video from the server (Range-enabled download endpoint) with native
 /// controls. Auth is passed via the `Authorization: Bearer` HTTP header.
@@ -18,6 +19,8 @@ class VideoPlayerScreen extends StatefulWidget {
     required this.title,
     this.resource,
     this.client,
+    this.actions,
+    this.onChanged,
   });
 
   final Uri url;
@@ -28,6 +31,14 @@ class VideoPlayerScreen extends StatefulWidget {
   /// "Info" action exposes its [FileDetailsSheet].
   final FbResource? resource;
   final FileBrowserClient? client;
+
+  /// The shared per-item flows; when supplied (together with [resource]) the
+  /// app bar carries the full [ItemActionsMenu].
+  final ItemActions? actions;
+
+  /// Invoked after a rename/delete here changed the server, so the screen
+  /// beneath (the browser) can refresh its listing.
+  final VoidCallback? onChanged;
 
   @override
   State<VideoPlayerScreen> createState() => _VideoPlayerScreenState();
@@ -75,6 +86,14 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     super.dispose();
   }
 
+  /// The playing file was renamed or deleted: the stream URL is now stale, so
+  /// notify the browser and close. Invoked after an async flow, hence the
+  /// mounted guard.
+  void _closeAfterChange() {
+    widget.onChanged?.call();
+    if (mounted) Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
@@ -94,6 +113,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                 resource: widget.resource!,
                 client: widget.client!,
               ),
+            ),
+          if (widget.resource != null && widget.actions != null)
+            ItemActionsMenu(
+              actions: widget.actions!,
+              resource: widget.resource!,
+              onRenamed: _closeAfterChange,
+              onDeleted: _closeAfterChange,
             ),
         ],
       ),

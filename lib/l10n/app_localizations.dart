@@ -214,6 +214,12 @@ abstract class AppLocalizations {
   /// **'Overwrite'**
   String get actionOverwrite;
 
+  /// Generic confirm button to proceed after a warning
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get actionContinue;
+
   /// Login screen app bar title
   ///
   /// In en, this message translates to:
@@ -618,6 +624,12 @@ abstract class AppLocalizations {
   /// **'Cannot retry: session expired. Sign in again.'**
   String get errorSessionExpiredRetry;
 
+  /// Error when sending file copies cannot start because the session is gone
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot share: session expired. Sign in again.'**
+  String get errorSessionExpiredShare;
+
   /// Error snackbar when a folder upload fails
   ///
   /// In en, this message translates to:
@@ -905,6 +917,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Create link'**
   String get shareDialogCreateLink;
+
+  /// Share chooser option: send local copies via the system share sheet
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Send file} other{Send {count} files}}'**
+  String shareSendCopy(num count);
+
+  /// Subtitle of the send-copy share option when available
+  ///
+  /// In en, this message translates to:
+  /// **'Share a copy through another app'**
+  String get shareSendCopySubtitle;
+
+  /// Subtitle of the send-copy share option when the selection contains a folder
+  ///
+  /// In en, this message translates to:
+  /// **'Folders can\'t be sent as files'**
+  String get shareSendFoldersUnsupported;
+
+  /// Subtitle of the share-link option when available
+  ///
+  /// In en, this message translates to:
+  /// **'Create a public link on the server'**
+  String get shareLinkSubtitle;
+
+  /// Subtitle of the share-link option when more than one item is selected
+  ///
+  /// In en, this message translates to:
+  /// **'Select a single item to share a link'**
+  String get shareLinkSelectOne;
+
+  /// Snackbar while items download to the device before the system share sheet opens
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Preparing file…} other{Preparing {count} files…}}'**
+  String sharePreparingCount(num count);
+
+  /// Error snackbar when preparing/sending file copies fails
+  ///
+  /// In en, this message translates to:
+  /// **'Could not send: {error}'**
+  String shareCouldNotSend(String error);
+
+  /// Confirmation title before downloading a large selection for sending
+  ///
+  /// In en, this message translates to:
+  /// **'Send large files?'**
+  String get shareLargeTitle;
+
+  /// Confirmation body before downloading a large selection for sending
+  ///
+  /// In en, this message translates to:
+  /// **'{size} will be downloaded to your device before sharing.'**
+  String shareLargeBody(String size);
 
   /// Shares screen title and overflow menu item
   ///

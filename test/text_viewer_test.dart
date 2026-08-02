@@ -7,6 +7,7 @@ import 'package:filebrowser_mobile/src/ui/text_viewer_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/fakes.dart';
 import 'support/l10n.dart';
 import 'support/mock_adapter.dart';
 
@@ -48,19 +49,22 @@ void main() {
   testWidgets('a file over the cap is not fetched; offers Open with…',
       (tester) async {
     final adapter = MockAdapter((_) => MockAdapter.json({}));
-    var openedExternally = false;
+    final client = _client(adapter);
+    final actions = await fakeItemActions(client);
+    final resource = _file('huge.log', TextViewerScreen.maxPreviewBytes + 1);
     await tester.pumpWidget(_wrap(TextViewerScreen(
-      client: _client(adapter),
-      resource: _file('huge.log', TextViewerScreen.maxPreviewBytes + 1),
-      onOpenExternally: () => openedExternally = true,
+      client: client,
+      resource: resource,
+      actions: actions,
     )));
     await tester.pumpAndSettle();
 
     expect(adapter.requests, isEmpty); // never downloaded
     expect(find.textContaining('Too large to preview'), findsOneWidget);
-    await tester.tap(find.text('Open with…'));
+    // The body CTA (not the app-bar menu) hands off to the shared flow.
+    await tester.tap(find.widgetWithText(FilledButton, 'Open with…'));
     await tester.pumpAndSettle();
-    expect(openedExternally, isTrue);
+    expect(actions.openedWith.single.path, resource.path);
   });
 
   testWidgets('a fetch failure shows the copyable error view with retry',
