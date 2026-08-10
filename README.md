@@ -1,13 +1,34 @@
 # Filebrowser Quantum — Android client (Flutter)
 
-A self-hosted [Filebrowser Quantum](https://github.com/gtsteffaniak/filebrowser)
-mobile client for Android. Built and tested with **Flutter 3.44.4 / Dart 3.12**
-(`flutter analyze` is clean and the test suite is green).
+[![CI](https://github.com/jjshoots/filebrowser_mobile/actions/workflows/ci.yml/badge.svg)](https://github.com/jjshoots/filebrowser_mobile/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/jjshoots/filebrowser_mobile)](https://github.com/jjshoots/filebrowser_mobile/releases/latest)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-It pairs biometric-gated direct login with a full file-management UI: browse
-across one or more **sources**, multiselect batch operations, move/copy with
-conflict handling, search, share links, server status, background
-uploads/downloads, share-into-app, and open-with hand-off.
+An Android app for [Filebrowser Quantum](https://github.com/gtsteffaniak/filebrowser) —
+the self-hosted file browser / file manager for your own server or NAS. It pairs
+biometric-gated direct login with a full file-management UI: browse across one
+or more **sources**, multiselect batch operations, move/copy with conflict
+handling, search, share links, server status, background uploads/downloads,
+share-into-app, and open-with hand-off.
+
+Built and tested with **Flutter 3.44.4 / Dart 3.12** (`flutter analyze` is
+clean and the test suite is green).
+
+## Install
+
+Grab the APK from the [latest release](https://github.com/jjshoots/filebrowser_mobile/releases/latest)
+and sideload it, or build from source (see [Build & run](#build--run)). You
+need a running [Filebrowser Quantum](https://github.com/gtsteffaniak/filebrowser)
+server to connect to.
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/browser.png" width="24%" alt="Directory browser showing folders and files on a Filebrowser Quantum server"/>
+  <img src="docs/screenshots/gallery.png" width="24%" alt="Photo grid with image thumbnails and breadcrumb navigation"/>
+  <img src="docs/screenshots/viewer.png" width="24%" alt="Zoomable in-app image viewer streaming a photo from the server"/>
+  <img src="docs/screenshots/details.png" width="24%" alt="File details sheet with path, size, modified time, type, and on-demand checksum"/>
+</p>
 
 ## Features
 
