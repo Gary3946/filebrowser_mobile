@@ -76,11 +76,43 @@ class _StatusScreenState extends State<StatusScreen> {
             _section(loc.statusSectionAccount),
             _userCard(),
             const SizedBox(height: 24),
+            
+          ],
             _section(loc.statusSectionServer),
             _serverCard(),
             const SizedBox(height: 24),
+            _section('DAS System Dashboard'),
+            Card(
+              child: Column(
+                children: const [
+                  ListTile(
+                    leading: Icon(Icons.memory),
+                    title: Text('CPU usage'),
+                    subtitle: Text('Waiting for Pi monitoring service'),
+                  ),
+                  Divider(height: 1),
+                  ListTile(
+                    leading: Icon(Icons.storage),
+                    title: Text('RAM usage'),
+                    subtitle: Text('Waiting for Pi monitoring service'),
+                  ),
+                  Divider(height: 1),
+                  ListTile(
+                    leading: Icon(Icons.thermostat),
+                    title: Text('CPU temperature'),
+                    subtitle: Text('Waiting for Pi monitoring service'),
+                  ),
+                  Divider(height: 1),
+                  ListTile(
+                    leading: Icon(Icons.health_and_safety),
+                    title: Text('Drive health'),
+                    subtitle: Text('Waiting for DAS drives and monitoring service'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
             _actions(context),
-          ],
         ),
       ),
     );
