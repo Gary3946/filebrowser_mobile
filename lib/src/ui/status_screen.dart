@@ -82,7 +82,7 @@ class _StatusScreenState extends State<StatusScreen> {
             _section('DAS System Dashboard'),
            const Card(
               child: Column(
-                children: const [
+                children:  [
                   ListTile(
                     leading: Icon(Icons.memory),
                     title: Text('CPU usage'),
