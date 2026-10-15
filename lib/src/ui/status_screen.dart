@@ -109,8 +109,9 @@ class _StatusScreenState extends State<StatusScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+          const SizedBox(height: 24),
             _actions(context),
+          ],
         ),
       ),
     );
