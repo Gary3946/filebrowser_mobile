@@ -76,8 +76,6 @@ class _StatusScreenState extends State<StatusScreen> {
             _section(loc.statusSectionAccount),
             _userCard(),
             const SizedBox(height: 24),
-            
-          ],
             _section(loc.statusSectionServer),
             _serverCard(),
             const SizedBox(height: 24),
