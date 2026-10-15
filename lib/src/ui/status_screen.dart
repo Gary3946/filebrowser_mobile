@@ -80,7 +80,7 @@ class _StatusScreenState extends State<StatusScreen> {
             _serverCard(),
             const SizedBox(height: 24),
             _section('DAS System Dashboard'),
-            Card(
+           const Card(
               child: Column(
                 children: const [
                   ListTile(
