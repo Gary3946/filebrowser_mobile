@@ -37,11 +37,11 @@ class FileBrowserApp extends StatelessWidget {
         supportedLocales: AppLocalizations.supportedLocales,
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          colorSchemeSeed: Colors.indigo,
+          colorSchemeSeed: Colors.teal,
           useMaterial3: true,
         ),
         darkTheme: ThemeData(
-          colorSchemeSeed: Colors.indigo,
+          colorSchemeSeed: Colors.teal,
           brightness: Brightness.dark,
           useMaterial3: true,
         ),
