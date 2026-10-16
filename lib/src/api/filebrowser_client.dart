@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 
 import 'models.dart';
 
@@ -38,7 +40,18 @@ class FileBrowserClient {
         // origin. The quantum API is same-origin and needs no redirects; a 3xx
         // surfaces as a response the callers treat as a failure.
         _dio = Dio(BaseOptions(followRedirects: false, maxRedirects: 0)) {
-    if (adapter != null) _dio.httpClientAdapter = adapter;
+    // Preserve injected adapters used by tests. For the PiDas HTTPS endpoint,
+    // trust its private Caddy root CA in addition to the normal system roots.
+    // This does NOT bypass certificate or hostname verification.
+    if (adapter != null) {
+      _dio.httpClientAdapter = adapter;
+    } else if (Uri.parse(_baseUrl).host == '192.168.1.92') {
+      final context = SecurityContext(withTrustedRoots: true)
+        ..setTrustedCertificatesBytes(utf8.encode(_piDasRootCertificatePem));
+      _dio.httpClientAdapter = IOHttpClientAdapter(
+        createHttpClient: () => HttpClient(context: context),
+      );
+    }
     _dio.interceptors.add(
       InterceptorsWrapper(
         onResponse: (response, handler) {
@@ -54,6 +67,20 @@ class FileBrowserClient {
 
   final Dio _dio;
   final String _baseUrl;
+
+  // PiDas Caddy local root CA. Used only for https://192.168.1.92 above.
+  static const String _piDasRootCertificatePem = '''-----BEGIN CERTIFICATE-----
+MIIBozCCAUqgAwIBAgIRAPae9WuW/AR1u3uYO0f5zBswCgYIKoZIzj0EAwIwMDEu
+MCwGA1UEAxMlQ2FkZHkgTG9jYWwgQXV0aG9yaXR5IC0gMjAyNiBFQ0MgUm9vdDAe
+Fw0yNjEwMTYwODE1MzBaFw0zNjA4MjQwODE1MzBaMDAxLjAsBgNVBAMTJUNhZGR5
+IExvY2FsIEF1dGhvcml0eSAtIDIwMjYgRUNDIFJvb3QwWTATBgcqhkjOPQIBBggq
+hkjOPQMBBwNCAARFVkVudgMwSsDhRIBRXEyd/teHYiSGjkmCbQ+wyAVKMD0CmNI9
+umbhHo2OInoHMUkpZcyjDHMKOizQ58o+dBmmo0UwQzAOBgNVHQ8BAf8EBAMCAQYw
+EgYDVR0TAQH/BAgwBgEB/wIBATAdBgNVHQ4EFgQUZX2Ov/MlPbM1XJMQxQCPHPgs
+5j0wCgYIKoZIzj0EAwIDRwAwRAIgJV54L2EN6TYoISyFzH0LU5fCw+wiITK7IX4f
+QN+TqQUCIAg6MJ9U0bNtib2vIrKrJDaL/iMGihuOzOUw19wQuccl
+-----END CERTIFICATE-----
+''';
 
   // Marks the internal `/api/auth/renew` call so a 401 on renew itself is NOT
   // retried (which would loop) — it surfaces as a SessionExpiredException.
