@@ -9,6 +9,7 @@
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="false">192.168.1.92</domain>
         <trust-anchors>
+            <certificates src="system" />
             <certificates src="@raw/pidas_root" />
         </trust-anchors>
     </domain-config>
